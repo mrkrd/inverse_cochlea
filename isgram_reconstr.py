@@ -318,7 +318,7 @@ def main():
 
     isgram_reconstructor = ISgramReconstructor(
         time_shift=2,
-        hidden_layer=0.25,
+        hidden_layer=0.,
         band=(1000,8000),
         channel_num=51,
         cfs_per_channel=[1, 1.2],
