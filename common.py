@@ -5,7 +5,12 @@ from __future__ import division
 __author__ = "Marek Rudnicki"
 
 import numpy as np
+import scipy.signal as dsp
 
+import cochlea
+import thorns as th
+
+import joblib
 mem = joblib.Memory("tmp", verbose=1)
 
 def band_pass_filter(signal, fs, band):
