@@ -7,3 +7,4 @@ __author__ = "Marek Rudnicki"
 
 from isgram_reconstr import ISgramReconstructor
 
+from common import run_ear

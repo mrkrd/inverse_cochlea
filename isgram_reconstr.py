@@ -19,7 +19,6 @@ from sgram import calc_sgram, calc_isgram, SGram
 from common import band_pass_filter, run_ear
 
 mem = joblib.Memory("tmp", verbose=1)
-
 Net = namedtuple("Net", "net, freq, fs, time_shift, cfs, win_len")
 
 
@@ -39,8 +38,8 @@ class ISgramReconstructor(object):
         self.channel_num = channel_num
         self.cfs_per_channel = cfs_per_channel
         self.anf_num = anf_num
-        self.hidden_layer = hidden_layer
         self.cfs = None
+        self._hidden_layer = hidden_layer
 
         self._nets = None
 
@@ -61,7 +60,7 @@ class ISgramReconstructor(object):
                 channel_num=self.channel_num,
                 band=self.band,
                 cfs_per_channel=self.cfs_per_channel,
-                hidden_layer=self.hidden_layer,
+                hidden_layer=self._hidden_layer,
                 win_len_sec=5e-3
             )
 
@@ -199,16 +198,16 @@ def _generate_nets(fs,
 
         ### Make MLP
         if hidden_layer > 0:
-            c = ffnet.mlgraph(
+            conec = ffnet.mlgraph(
                 (int(len(cfs)*win_len),
                  int(len(cfs)*win_len*hidden_layer),
                  1)
             )
         else:
-            c = ffnet.mlgraph(
+            conec = ffnet.mlgraph(
                 (int(len(cfs)*win_len), 1)
             )
-        net = ffnet.ffnet(c)
+        net = ffnet.ffnet(conec)
 
 
         nets.append(
