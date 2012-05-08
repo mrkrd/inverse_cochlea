@@ -18,7 +18,7 @@ from common import run_ear, band_pass_filter
 
 Net = namedtuple("Net", "net, fs, cfs, win_len")
 Signal = namedtuple("Signal", "data, fs")
-mem = joblib.Memory("tmp", verbose=1)
+mem = joblib.Memory("tmp", verbose=2)
 
 class LowFreqReconstructor(object):
     def __init__(self,
@@ -36,6 +36,7 @@ class LowFreqReconstructor(object):
         self.anf_num = anf_num
         self._hidden_layer = hidden_layer
 
+        self.cfs = None
         self._net = None
 
 
@@ -48,12 +49,11 @@ class LowFreqReconstructor(object):
 
         s = Signal(sound, fs)
 
-
         anfs = run_ear(
-            s.data,
-            s.fs,
-            (self.band[0], self.band[1], self.channel_num),
-            self.anf_num
+            signal=s.data,
+            fs=s.fs,
+            cfs=(self.band[0], self.band[1], self.channel_num),
+            anf_num=self.anf_num
         )
 
         if self.cfs is None:
@@ -63,7 +63,7 @@ class LowFreqReconstructor(object):
 
 
         if self._net is None:
-            win_len = np.round(10e-3 * self.fs_mlp)
+            win_len = int(np.round(10e-3 * self.fs_mlp))
 
             if self._hidden_layer > 0:
                 conec = ffnet.mlgraph(
@@ -73,14 +73,16 @@ class LowFreqReconstructor(object):
                 )
             else:
                 conec = ffnet.mlgraph(
-                    (win_len*self.channel_num, 1)
+                    (win_len*self.channel_num,
+                     1)
                 )
 
+            np.random.seed(0)
             net = ffnet.ffnet(conec)
 
             self._net = Net(
                 net=net,
-                fs=fs_mlp,
+                fs=self.fs_mlp,
                 cfs=self.cfs,
                 win_len=win_len
             )
@@ -96,9 +98,45 @@ class LowFreqReconstructor(object):
 
 
 
+    def run(self, anfs, filter=True):
+        ### Check anf_num
+        for anf_num in anfs.anf_num:
+            assert np.all( anf_num == np.array(self.anf_num) )
+
+
+        ### Run MLP
+        input_data = _make_mlp_data(
+            self._net,
+            anfs
+        )
+
+        output_data = self._net.net(input_data)
+        sound = output_data.squeeze()
+        sound = dsp.resample(sound, len(sound) * self.fs / self._net.fs)
+
+        filtered = band_pass_filter(sound, self.fs, self.band)
+
+        return filtered, self.fs
+
+
+
 @mem.cache
 def _train(net, anfs, signal, iter_num):
-    pass
+    input_data, target_data = _make_mlp_data(
+        net,
+        anfs,
+        signal
+    )
+
+    net.net.train_tnc(
+        input_data,
+        target_data,
+        maxfun=iter_num,
+        messages=1,
+        nproc=None
+    )
+
+    return net
 
 
 
@@ -113,22 +151,90 @@ def _make_mlp_data(net, anfs, signal=None):
         trains.append( anfs[anfs.cfs==cf].trains )
     trains = np.array(trains).T.squeeze()
 
-
     ### Resample ANF to net.fs
-    if signal is not None:
-        s = dsp.resample(signal.data, len(signal.data) * net.fs / signal.fs)
-        assert net.fs == sgram.fs
-        assert net.time_shift == sgram.time_shift
-        assert net.freq in sgram.freqs
     anf_mat = dsp.resample(
         trains,
-        len(trains) * net.fs / net.time_shift / fs_anf
+        len(trains) * net.fs / fs_anf
     )
+    if signal is not None:
+        sig = dsp.resample(signal.data, len(anf_mat))
+
+
+
+    input_data = []
+    target_data = []
+    for i in np.arange(len(anf_mat) - net.win_len):
+        lo = i
+        hi = i + net.win_len
+
+        input_data.append( anf_mat[lo:hi].flatten() )
+        if signal is not None:
+            target_data.append( [sig[lo]] )
+
+    input_data = np.array(input_data, dtype=float)
+    target_data = np.array(target_data, dtype=float)
+
+
+    if signal is None:
+        return input_data
+    else:
+        return input_data, target_data
 
 
 
 def main():
-    pass
+    fs = 16e3
+    t = np.arange(0, 0.1, 1/fs)
+
+    s1 = dsp.chirp(t, 50, t[-1], 2000)
+    s1 = cochlea.set_dbspl(s1, 60)
+    s1[300:400] = 0
+
+    s2 = dsp.chirp(t, 2000, t[-1], 50)
+    s2 = cochlea.set_dbspl(s2, 50)
+    s2[300:400] = 0
+
+    s = np.concatenate( (s1, s2) )
+
+
+    low_freq_reconstructor = LowFreqReconstructor(
+        band=(80,2000),
+        fs_mlp=4e3,
+        hidden_layer=0
+    )
+
+
+    ### Training
+    low_freq_reconstructor.train(
+        s,
+        fs,
+        iter_num=1000
+    )
+
+
+    ### Testing
+    anfs = run_ear(
+        signal=s,
+        fs=fs,
+        cfs=low_freq_reconstructor.cfs,
+        anf_num=low_freq_reconstructor.anf_num
+    )
+    r, fs = low_freq_reconstructor.run(
+        anfs
+    )
+
+
+
+    fig, ax = plt.subplots(nrows=3, ncols=1)
+    ax[0].plot(s)
+    ax[2].plot(r)
+    ax[1].imshow(anfs.trains, aspect='auto')
+
+    plt.show()
+
+
+
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     main()

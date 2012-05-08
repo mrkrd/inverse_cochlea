@@ -11,7 +11,7 @@ import cochlea
 import thorns as th
 
 import joblib
-mem = joblib.Memory("tmp", verbose=1)
+mem = joblib.Memory("tmp", verbose=2)
 
 def band_pass_filter(signal, fs, band):
     lo, hi = band
@@ -58,7 +58,7 @@ def run_ear(signal,
     # anf_matrix[ anf_matrix < 0 ] = 0
 
     anfs = []
-    for cf,train in zip(cfs, anf_matrix.T):
+    for cf,train in zip(ear.get_freq_map(), anf_matrix.T):
         anfs.append( (train, fs, cf, anf_num) )
 
     anfs = np.rec.array(
