@@ -6,5 +6,6 @@ __author__ = "Marek Rudnicki"
 
 
 from isgram_reconstr import ISgramReconstructor
+from low_freq_reconstructor import LowFreqReconstructor
 
 from common import run_ear
