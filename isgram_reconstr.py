@@ -24,7 +24,7 @@ Net = namedtuple("Net", "net, freq, fs, time_shift, cfs, win_len")
 
 class ISgramReconstructor(object):
     def __init__(self,
-                 time_shift,
+                 time_shift=2,
                  hidden_layer=0.25,
                  band=(2000,8000),
                  channel_num=51,
@@ -317,7 +317,7 @@ def main():
 
     isgram_reconstructor = ISgramReconstructor(
         time_shift=2,
-        hidden_layer=0.,
+        hidden_layer=0,
         band=(1000,8000),
         channel_num=51,
         cfs_per_channel=[1, 1.2],
@@ -329,7 +329,7 @@ def main():
     isgram_reconstructor.train(
         s,
         fs,
-        iter_num=1000
+        iter_num=500
     )
 
 
@@ -345,7 +345,7 @@ def main():
 
     r, fs = isgram_reconstructor.run(
         anfs,
-        iter_num=1000
+        iter_num=100
     )
 
 

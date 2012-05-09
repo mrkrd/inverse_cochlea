@@ -200,7 +200,7 @@ def main():
     low_freq_reconstructor = LowFreqReconstructor(
         band=(80,2000),
         fs_mlp=4e3,
-        hidden_layer=0.1
+        hidden_layer=0
     )
 
 
@@ -208,7 +208,7 @@ def main():
     low_freq_reconstructor.train(
         s,
         fs,
-        iter_num=1000
+        iter_num=300
     )
 
 
