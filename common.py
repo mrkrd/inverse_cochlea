@@ -34,13 +34,15 @@ def band_pass_filter(signal, fs, band):
 def run_ear(signal,
             fs,
             cfs,
-            anf_num=(0,1000,0)):
+            anf_num=(0,1000,0),
+            cohc=1,
+            cihc=1):
 
 
     cfs_model = cochlea.Zilany2009_Human(cf=cfs).get_freq_map()
     space = []
     for cf in cfs_model:
-        space.append( (anf_num, cf, signal, fs) )
+        space.append( (anf_num, cf, signal, fs, cohc, cihc) )
 
     pool = multiprocessing.Pool()
     trains = pool.map(_run_ear_helper, space)
@@ -62,14 +64,16 @@ def run_ear(signal,
     return anfs
 
 
-def _run_ear_helper( (anf_num, cf, signal, fs) ):
+def _run_ear_helper( (anf_num, cf, signal, fs, cohc, cihc) ):
 
     fs_model = 100e3
     signal_model = dsp.resample(signal, len(signal) * fs_model / fs)
 
     ear = cochlea.Zilany2009_Human(
         anf_num=anf_num,
-        cf=cf
+        cf=cf,
+        cohc=cohc,
+        cihc=cihc
     )
 
     anf = ear.run(
