@@ -36,13 +36,11 @@ def run_ear(signal,
             cfs,
             anf_num=(0,1000,0)):
 
-    fs_s = 100e3
-    s = dsp.resample(signal, len(signal) * fs_s / fs)
 
     cfs_model = cochlea.Zilany2009_Human(cf=cfs).get_freq_map()
     space = []
     for cf in cfs_model:
-        space.append( (anf_num, cf, s, fs_s) )
+        space.append( (anf_num, cf, signal, fs) )
 
     pool = multiprocessing.Pool()
     trains = pool.map(_run_ear_helper, space)
@@ -64,15 +62,19 @@ def run_ear(signal,
     return anfs
 
 
-def _run_ear_helper( (anf_num, cf, s, fs) ):
+def _run_ear_helper( (anf_num, cf, signal, fs) ):
+
+    fs_model = 100e3
+    signal_model = dsp.resample(signal, len(signal) * fs_model / fs)
+
     ear = cochlea.Zilany2009_Human(
         anf_num=anf_num,
         cf=cf
     )
 
     anf = ear.run(
-        s,
-        fs,
+        signal_model,
+        fs_model,
         seed=0
     )
 
@@ -80,7 +82,8 @@ def _run_ear_helper( (anf_num, cf, s, fs) ):
         anf,
         ignore=['index', 'type']
     )
-    train = th.trains_to_signal(anf_acc, fs).squeeze()
+    train = th.trains_to_signal(anf_acc, fs_model).squeeze()
+    train = dsp.resample(train, len(train) * fs / fs_model)
 
     return train
 
