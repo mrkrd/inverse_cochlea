@@ -8,10 +8,13 @@ import numpy as np
 from collections import namedtuple
 
 import pytave
+import joblib
 
 pytave.addpath("~/src/ltfat")
 pytave.addpath("/nfs/system/opt/ltfat")
 pytave.eval(0, 'ltfatstart')
+
+mem = joblib.Memory(cachedir="tmp", verbose=2)
 
 SGram = namedtuple("SGram", "data, fs, freqs, time_shift")
 
@@ -43,7 +46,7 @@ def calc_sgram(signal, fs, channel_num, time_shift):
 
 
 
-
+@mem.cache
 def calc_isgram(sgram, iter_num=1000):
 
     channel_num = 2 * (sgram.data.shape[1] - 1)

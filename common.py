@@ -6,6 +6,7 @@ __author__ = "Marek Rudnicki"
 
 import numpy as np
 import scipy.signal as dsp
+import multiprocessing
 
 import cochlea
 import thorns as th
@@ -38,27 +39,17 @@ def run_ear(signal,
     fs_s = 100e3
     s = dsp.resample(signal, len(signal) * fs_s / fs)
 
-    ear = cochlea.Zilany2009_Human(
-        anf_num=anf_num,
-        cf=cfs
-    )
-    anf_trains = ear.run(
-        s,
-        fs_s,
-        seed=0
-    )
+    cfs_model = cochlea.Zilany2009_Human(cf=cfs).get_freq_map()
+    space = []
+    for cf in cfs_model:
+        space.append( (anf_num, cf, s, fs_s) )
 
-    anf_acc = th.accumulate_spike_trains(
-        anf_trains,
-        ignore=['index', 'type']
-    )
-    anf_matrix = th.trains_to_signal(anf_acc, fs).squeeze()
+    pool = multiprocessing.Pool()
+    trains = pool.map(_run_ear_helper, space)
 
-    # anf_matrix -= 5
-    # anf_matrix[ anf_matrix < 0 ] = 0
 
     anfs = []
-    for cf,train in zip(ear.get_freq_map(), anf_matrix.T):
+    for cf,train in zip(cfs_model, trains):
         anfs.append( (train, fs, cf, anf_num) )
 
     anfs = np.rec.array(
@@ -73,6 +64,25 @@ def run_ear(signal,
     return anfs
 
 
+def _run_ear_helper( (anf_num, cf, s, fs) ):
+    ear = cochlea.Zilany2009_Human(
+        anf_num=anf_num,
+        cf=cf
+    )
+
+    anf = ear.run(
+        s,
+        fs,
+        seed=0
+    )
+
+    anf_acc = th.accumulate_spike_trains(
+        anf,
+        ignore=['index', 'type']
+    )
+    train = th.trains_to_signal(anf_acc, fs).squeeze()
+
+    return train
 
 
 def main():
