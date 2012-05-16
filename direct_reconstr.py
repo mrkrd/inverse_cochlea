@@ -7,6 +7,7 @@ __author__ = "Marek Rudnicki"
 import numpy as np
 import scipy.signal as dsp
 from collections import namedtuple
+import os
 
 import ffnet
 import joblib
@@ -18,9 +19,10 @@ from common import run_ear, band_pass_filter
 
 Net = namedtuple("Net", "net, fs, cfs, win_len")
 Signal = namedtuple("Signal", "data, fs")
-mem = joblib.Memory("tmp", verbose=2)
 
-class LowFreqReconstructor(object):
+mem = joblib.Memory(os.path.join("c:", "tmp"), verbose=2)
+
+class DirectReconstructor(object):
     def __init__(self,
                  band=(80, 2000),
                  fs_mlp=8e3,
@@ -199,7 +201,7 @@ def main():
     s = np.concatenate( (s1, s2) )
 
 
-    low_freq_reconstructor = LowFreqReconstructor(
+    direct_reconstructor = DirectReconstructor(
         band=(80,2000),
         fs_mlp=4e3,
         hidden_layer=0
@@ -207,7 +209,7 @@ def main():
 
 
     ### Training
-    low_freq_reconstructor.train(
+    direct_reconstructor.train(
         s,
         fs,
         iter_num=300
@@ -218,10 +220,10 @@ def main():
     anfs = run_ear(
         signal=s,
         fs=fs,
-        cfs=low_freq_reconstructor.cfs,
-        anf_num=low_freq_reconstructor.anf_num
+        cfs=direct_reconstructor.cfs,
+        anf_num=direct_reconstructor.anf_num
     )
-    r, fs = low_freq_reconstructor.run(
+    r, fs = direct_reconstructor.run(
         anfs
     )
 
