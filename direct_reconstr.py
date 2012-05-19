@@ -117,9 +117,10 @@ class DirectReconstructor(object):
         sound = output_data.squeeze()
         sound = dsp.resample(sound, len(sound) * self.fs / self._net.fs)
 
-        filtered = band_pass_filter(sound, self.fs, self.band)
+        if filter:
+            sound = band_pass_filter(sound, self.fs, self.band)
 
-        return filtered, self.fs
+        return sound, self.fs
 
 
 
