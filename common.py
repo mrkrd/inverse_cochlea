@@ -7,13 +7,12 @@ __author__ = "Marek Rudnicki"
 import numpy as np
 import scipy.signal as dsp
 import multiprocessing
-import os
 
 import cochlea
 import thorns as th
 
 import joblib
-mem = joblib.Memory(os.path.join("c:", "tmp"), verbose=2)
+mem = joblib.Memory("tmp", verbose=2)
 
 def band_pass_filter(signal, fs, band):
     lo, hi = band

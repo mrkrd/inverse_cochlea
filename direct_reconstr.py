@@ -7,7 +7,6 @@ __author__ = "Marek Rudnicki"
 import numpy as np
 import scipy.signal as dsp
 from collections import namedtuple
-import os
 
 import ffnet
 import joblib
@@ -20,7 +19,7 @@ from common import run_ear, band_pass_filter
 Net = namedtuple("Net", "net, fs, cfs, win_len")
 Signal = namedtuple("Signal", "data, fs")
 
-mem = joblib.Memory(os.path.join("c:", "tmp"), verbose=2)
+mem = joblib.Memory("tmp", verbose=2)
 
 class DirectReconstructor(object):
     def __init__(self,
