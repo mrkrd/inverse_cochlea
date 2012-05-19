@@ -336,7 +336,7 @@ def main():
 
     ### Testing
     anfs = run_ear(
-        signal=s,
+        sound=s,
         fs=fs,
         cfs=isgram_reconstructor.cfs,
         anf_num=isgram_reconstructor.anf_num

@@ -51,7 +51,7 @@ class DirectReconstructor(object):
         s = Signal(sound, fs)
 
         anfs = run_ear(
-            signal=s.data,
+            sound=s.data,
             fs=s.fs,
             cfs=(self.band[0], self.band[1], self.channel_num),
             anf_num=self.anf_num
@@ -218,7 +218,7 @@ def main():
 
     ### Testing
     anfs = run_ear(
-        signal=s,
+        sound=s,
         fs=fs,
         cfs=direct_reconstructor.cfs,
         anf_num=direct_reconstructor.anf_num
