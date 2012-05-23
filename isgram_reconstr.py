@@ -198,16 +198,26 @@ def _generate_nets(fs,
 
 
         ### Make MLP
-        if hidden_layer > 0:
+        if hidden_layer > 1:
+            conec = ffnet.mlgraph(
+                (int(len(cfs)*win_len)
+                 int(hidden_layer),
+                 1)
+            )
+
+        elif hidden_layer > 0:
             conec = ffnet.mlgraph(
                 (int(len(cfs)*win_len),
                  int(len(cfs)*win_len*hidden_layer),
                  1)
             )
-        else:
+        elif hidden_layer == 0:
             conec = ffnet.mlgraph(
                 (int(len(cfs)*win_len), 1)
             )
+        else:
+            assert False
+
         net = ffnet.ffnet(conec)
 
 
