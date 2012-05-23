@@ -52,6 +52,7 @@ class ISgramReconstructor(object):
         else:
             assert self.fs == fs
 
+        sound = band_pass_filter(sound, fs, self.band)
 
         if self._nets is None:
             self._nets = _generate_nets(

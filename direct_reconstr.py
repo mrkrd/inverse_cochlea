@@ -48,6 +48,8 @@ class DirectReconstructor(object):
         else:
             assert self.fs == fs
 
+        sound = band_pass_filter(sound, fs, self.band)
+
         s = Signal(sound, fs)
 
         anfs = run_ear(
@@ -66,17 +68,29 @@ class DirectReconstructor(object):
         if self._net is None:
             win_len = int(np.round(10e-3 * self.fs_mlp))
 
-            if self._hidden_layer > 0:
+            if self._hidden_layer > 1:
+                conec = ffnet.mlgraph(
+                    (win_len*self.channel_num,
+                     int(self._hidden_layer),
+                     1)
+                )
+
+            elif self._hidden_layer > 0:
                 conec = ffnet.mlgraph(
                     (win_len*self.channel_num,
                      int(win_len*self.channel_num*self._hidden_layer),
                      1)
                 )
-            else:
+
+            elif self._hidden_layer == 0:
                 conec = ffnet.mlgraph(
                     (win_len*self.channel_num,
                      1)
                 )
+
+            else:
+                assert False, "hidden_layer should not be negative"
+
 
             np.random.seed(0)
             net = ffnet.ffnet(conec)
