@@ -200,7 +200,7 @@ def _generate_nets(fs,
         ### Make MLP
         if hidden_layer > 1:
             conec = ffnet.mlgraph(
-                (int(len(cfs)*win_len)
+                (int(len(cfs)*win_len),
                  int(hidden_layer),
                  1)
             )
