@@ -28,7 +28,7 @@ class ISgramReconstructor(object):
                  hidden_layer=0.25,
                  band=(2000,8000),
                  channel_num=51,
-                 cfs_per_channel=[0.8, 1],
+                 cfs_per_channel=[1, 1.2],
                  anf_num=(0,1000,0)
              ):
 
@@ -96,7 +96,7 @@ class ISgramReconstructor(object):
 
 
 
-    def run(self, anfs, iter_num=1000, filter=True):
+    def run(self, anfs, iter_num=1000, filter=True, store_sgram=False):
 
         ### Check anf_num
         for anf_num in anfs.anf_num:
@@ -144,15 +144,18 @@ class ISgramReconstructor(object):
             time_shift=self.time_shift
         )
 
+        if store_sgram:
+            self.sgram = sgram
+
 
         signal = calc_isgram(sgram, iter_num)
 
-        signal = band_pass_filter(signal, fs, self.band)
+        if filter:
+            signal = band_pass_filter(signal, fs, self.band)
+
+
 
         return signal, fs
-
-
-
 
 
 
