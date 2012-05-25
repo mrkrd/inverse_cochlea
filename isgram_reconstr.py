@@ -99,12 +99,12 @@ class ISgramReconstructor(object):
     def run(self, anfs, iter_num=1000, filter=True, store_sgram=False):
 
         ### Check anf_num
-        for anf_num in anfs.anf_num:
+        for anf_num in anfs['anf_num']:
             assert np.all( anf_num == np.array(self.anf_num) )
 
         ### Check fs
         fs_net, = np.unique([net.fs for net in self._nets])
-        fs_anf, = np.unique(anfs.fs)
+        fs_anf, = np.unique(anfs['fs'])
         assert fs_net == fs_anf
         fs = fs_net
 
@@ -256,14 +256,14 @@ def _train(nets, anfs, sgram, iter_num):
 
 def _make_mlp_data(net, anfs, sgram=None):
 
-    fs_anf = anfs.fs[0]
-    assert np.all(anfs.fs == fs_anf)
+    fs_anf = anfs['fs'][0]
+    assert np.all(anfs['fs'] == fs_anf)
 
 
     ### Select ANF channels
     trains = []
     for cf in net.cfs:
-        trains.append( anfs[anfs.cfs==cf].trains )
+        trains.append( anfs[anfs['cfs']==cf]['trains'] )
     trains = np.array(trains).T.squeeze()
 
 
@@ -370,7 +370,7 @@ def main():
     # ax[2].imshow(calc_sgram(r, fs, 51, 1).data.T, aspect='auto')
     ax[0].plot(s)
     ax[2].plot(r)
-    ax[1].imshow(anfs.trains, aspect='auto')
+    ax[1].imshow(anfs['trains'], aspect='auto')
 
 
     plt.show()

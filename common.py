@@ -52,7 +52,7 @@ def run_ear(sound,
     for cf,train in zip(cfs_model, trains):
         anfs.append( (train, fs, cf, anf_num) )
 
-    anfs = np.rec.array(
+    anfs = np.array(
         anfs,
         dtype=[
             ('trains', float, train.shape),
@@ -65,6 +65,8 @@ def run_ear(sound,
 
 
 def _run_ear_helper( (anf_num, cf, sound, fs, cohc, cihc) ):
+
+    print "CF:", cf
 
     fs_model = 100e3
     sound_model = dsp.resample(sound, len(sound) * fs_model / fs)

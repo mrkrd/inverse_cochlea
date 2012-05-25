@@ -19,7 +19,7 @@ from common import run_ear, band_pass_filter
 Net = namedtuple("Net", "net, fs, cfs, win_len")
 Signal = namedtuple("Signal", "data, fs")
 
-mem = joblib.Memory("tmp", verbose=2)
+mem = joblib.Memory("tmp", verbose=0)
 
 class DirectReconstructor(object):
     def __init__(self,
@@ -59,8 +59,9 @@ class DirectReconstructor(object):
             anf_num=self.anf_num
         )
 
+
         if self.cfs is None:
-            self.cfs = np.unique(anfs.cfs)
+            self.cfs = np.unique(anfs['cfs'])
 
 
 
@@ -117,7 +118,7 @@ class DirectReconstructor(object):
 
     def run(self, anfs, filter=True):
         ### Check anf_num
-        for anf_num in anfs.anf_num:
+        for anf_num in anfs['anf_num']:
             assert np.all( anf_num == np.array(self.anf_num) )
 
 
@@ -137,6 +138,8 @@ class DirectReconstructor(object):
         return sound, self.fs
 
 
+import hashlib
+import cPickle as pickle
 
 @mem.cache
 def _train(net, anfs, signal, iter_num):
@@ -145,6 +148,7 @@ def _train(net, anfs, signal, iter_num):
         anfs,
         signal
     )
+
 
     net.net.train_tnc(
         input_data,
@@ -159,14 +163,14 @@ def _train(net, anfs, signal, iter_num):
 
 
 def _make_mlp_data(net, anfs, signal=None):
-    fs_anf = anfs.fs[0]
-    assert np.all(anfs.fs == fs_anf)
+    fs_anf = anfs['fs'][0]
+    assert np.all(anfs['fs'] == fs_anf)
 
 
     ### Select ANF channels
     trains = []
     for cf in net.cfs:
-        trains.append( anfs[anfs.cfs==cf].trains )
+        trains.append( anfs[anfs['cfs']==cf]['trains'] )
     trains = np.array(trains).T.squeeze()
 
     ### Resample ANF to net.fs
@@ -246,7 +250,7 @@ def main():
     fig, ax = plt.subplots(nrows=3, ncols=1)
     ax[0].plot(s)
     ax[2].plot(r)
-    ax[1].imshow(anfs.trains, aspect='auto')
+    ax[1].imshow(anfs['trains'], aspect='auto')
 
     plt.show()
 
