@@ -138,8 +138,6 @@ class DirectReconstructor(object):
         return sound, self.fs
 
 
-import hashlib
-import cPickle as pickle
 
 @mem.cache
 def _train(net, anfs, signal, iter_num):
