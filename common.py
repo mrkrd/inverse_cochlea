@@ -7,12 +7,22 @@ __author__ = "Marek Rudnicki"
 import numpy as np
 import scipy.signal as dsp
 import multiprocessing
+import cPickle as pickle
 
 import cochlea
 import thorns as th
 
 import joblib
 mem = joblib.Memory("tmp", verbose=2)
+
+
+
+class Reconstructor(object):
+
+    def dump(self, fname):
+        pickle.dump(self, open(fname, 'w'))
+
+
 
 def band_pass_filter(signal, fs, band):
     lo, hi = band

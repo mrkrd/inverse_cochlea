@@ -14,14 +14,38 @@ import joblib
 import cochlea
 import thorns as th
 
-from common import run_ear, band_pass_filter
+from common import run_ear, band_pass_filter, Reconstructor
 
 Net = namedtuple("Net", "net, fs, cfs, win_len")
 Signal = namedtuple("Signal", "data, fs")
 
 mem = joblib.Memory("tmp", verbose=0)
 
-class DirectReconstructor(object):
+
+
+@mem.cache
+def _train_tnc(net, anfs, signal, **kwargs):
+    input_data, target_data = _make_mlp_data(
+        net,
+        anfs,
+        signal
+    )
+
+    net.net.train_tnc(
+        input_data,
+        target_data,
+        # maxfun=iter_num,
+        messages=1,
+        nproc=None,
+        **kwargs
+    )
+
+    return net
+
+
+
+
+class DirectReconstructor(Reconstructor):
     def __init__(self,
                  band=(80, 2000),
                  fs_mlp=8e3,
@@ -42,20 +66,28 @@ class DirectReconstructor(object):
 
 
 
-    def train(self, sound, fs, iter_num=1000):
+    def train(self, sound, fs, filter=True, func=_train_tnc, **kwargs):
         if self.fs is None:
             self.fs = fs
         else:
             assert self.fs == fs
 
-        sound = band_pass_filter(sound, fs, self.band)
+        if filter and isinstance(self.band, tuple):
+            print "Filtering the siganl:", self.band
+            sound = band_pass_filter(sound, fs, self.band)
+
 
         s = Signal(sound, fs)
+
+        if isinstance(self.band, tuple):
+            cfs = (self.band[0], self.band[1], self.channel_num)
+        else:
+            cfs = self.band
 
         anfs = run_ear(
             sound=s.data,
             fs=s.fs,
-            cfs=(self.band[0], self.band[1], self.channel_num),
+            cfs=cfs,
             anf_num=self.anf_num
         )
 
@@ -105,11 +137,11 @@ class DirectReconstructor(object):
 
 
 
-        self._net = _train(
+        self._net = func(
             net=self._net,
             anfs=anfs,
             signal=s,
-            iter_num=iter_num
+            **kwargs
         )
 
 
@@ -132,31 +164,10 @@ class DirectReconstructor(object):
         sound = output_data.squeeze()
         sound = dsp.resample(sound, len(sound) * self.fs / self._net.fs)
 
-        if filter:
+        if filter and isinstance(self.band, tuple):
             sound = band_pass_filter(sound, self.fs, self.band)
 
         return sound, self.fs
-
-
-
-@mem.cache
-def _train(net, anfs, signal, iter_num):
-    input_data, target_data = _make_mlp_data(
-        net,
-        anfs,
-        signal
-    )
-
-
-    net.net.train_tnc(
-        input_data,
-        target_data,
-        maxfun=iter_num,
-        messages=1,
-        nproc=None
-    )
-
-    return net
 
 
 
@@ -195,6 +206,13 @@ def _make_mlp_data(net, anfs, signal=None):
     target_data = np.array(target_data, dtype=float)
 
 
+    # import matplotlib.pyplot as plt
+    # fig, ax = plt.subplots(2,1)
+    # ax[0].imshow(input_data.T, aspect='auto')
+    # if signal is not None:
+    #     ax[1].plot(target_data)
+    # plt.show()
+
     if signal is None:
         return input_data
     else:
@@ -220,7 +238,7 @@ def main():
     direct_reconstructor = DirectReconstructor(
         band=(80,2000),
         fs_mlp=4e3,
-        hidden_layer=0
+        hidden_layer=4
     )
 
 
@@ -228,7 +246,7 @@ def main():
     direct_reconstructor.train(
         s,
         fs,
-        iter_num=300
+        maxfun=300
     )
 
 
