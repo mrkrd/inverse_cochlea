@@ -49,7 +49,7 @@ class DirectReconstructor(Reconstructor):
     def __init__(self,
                  band=(80, 2000),
                  fs_mlp=8e3,
-                 hidden_layer=0.25,
+                 hidden_layer=4,
                  channel_num=10,
                  anf_num=(0,1000,0)
              ):
