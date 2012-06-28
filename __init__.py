@@ -13,4 +13,4 @@ except ImportError:
 
 from direct_reconstr import DirectReconstructor
 
-from common import run_ear
+from common import run_ear, band_pass_filter
