@@ -78,6 +78,7 @@ def calc_isgram(sgram, iter_num=1000):
 
 
 
+
 def main():
     time_shift = 1
 
