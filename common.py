@@ -10,10 +10,10 @@ import multiprocessing
 import cPickle as pickle
 
 import cochlea
-import thorns as th
+import marlib.thorns as th
 
 import joblib
-mem = joblib.Memory("tmp", verbose=2)
+mem = joblib.Memory("work", verbose=2)
 
 
 
@@ -98,7 +98,7 @@ def _run_ear_helper( (anf_num, cf, sound, fs, cohc, cihc) ):
         anf,
         ignore=['index', 'type']
     )
-    train = th.trains_to_signal(anf_acc, fs_model).squeeze()
+    train = th.trains_to_array(anf_acc, fs_model).squeeze()
     train = dsp.resample(train, len(train) * fs / fs_model)
 
     return train

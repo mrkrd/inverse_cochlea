@@ -11,15 +11,12 @@ from collections import namedtuple
 import ffnet
 import joblib
 
-import cochlea
-import thorns as th
-
 from common import run_ear, band_pass_filter, Reconstructor
 
 Net = namedtuple("Net", "net, fs, cfs, win_len")
 Signal = namedtuple("Signal", "data, fs")
 
-mem = joblib.Memory("tmp", verbose=0)
+mem = joblib.Memory("work", verbose=0)
 
 
 
@@ -275,4 +272,6 @@ def main():
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    import cochlea
+
     main()

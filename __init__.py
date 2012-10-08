@@ -14,3 +14,8 @@ except ImportError:
 from direct_reconstr import DirectReconstructor
 
 from common import run_ear, band_pass_filter
+
+import cPickle as pickle
+
+def load(fname):
+    return pickle.load(open(fname,'r'))
