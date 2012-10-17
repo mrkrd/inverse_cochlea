@@ -44,34 +44,52 @@ def band_pass_filter(signal, fs, band):
 def run_ear(sound,
             fs,
             cfs,
-            anf_num=(0,1000,0),
+            anf=(0,1000,0),
             cohc=1,
             cihc=1):
 
+    assert sound.ndim == 1
 
-    cfs_model = cochlea.Zilany2009_Human(cf=cfs).get_freq_map()
-    space = []
-    for cf in cfs_model:
-        space.append( (anf_num, cf, sound, fs, cohc, cihc) )
-
-    pool = multiprocessing.Pool()
-    trains = pool.map(_run_ear_helper, space)
+    fs_model = 100e3
+    sound_model = dsp.resample(sound, len(sound) * fs_model / fs)
 
 
-    anfs = []
-    for cf,train in zip(cfs_model, trains):
-        anfs.append( (train, fs, cf, anf_num) )
+    if isinstance(anf, tuple):
+        anf = cochlea.run_zilany2009_human(
+            sound=sound_model,
+            fs=fs_model,
+            anf_num=anf,
+            seed=0,
+            cf=cfs,
+            cohc=cohc,
+            cihc=cihc,
+            parallel=True
+        )
+        acc = th.accumulate_spike_trains(
+            anf,
+            keep=['duration', 'cf']
+        )
+        arr = th.trains_to_array(acc, fs_model)
+        cfs = acc['cf']
 
-    anfs = np.array(
-        anfs,
-        dtype=[
-            ('trains', float, train.shape),
-            ('fs', float),
-            ('cfs', float),
-            ('anf_num', int, (3,))
-        ])
+    elif anf in ('hsr','msr','lsr'):
+        arr,cfs = cochlea.run_zilany2009_human_psp(
+            sound=sound_model,
+            fs=fs_model,
+            anf_type=anf,
+            seed=0,
+            cf=cfs,
+            cohc=cohc,
+            cihc=cihc,
+            parallel=True
+        )
 
-    return anfs
+
+
+    arr = dsp.resample(arr, len(arr) * fs / fs_model)
+
+
+    return arr, cfs
 
 
 def _run_ear_helper( (anf_num, cf, sound, fs, cohc, cihc) ):
