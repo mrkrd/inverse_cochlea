@@ -42,7 +42,7 @@ def _train_tnc(net, anfs, signal, **kwargs):
 
 
 
-class DirectReconstructor(Reconstructor):
+class MlpReconstructor(Reconstructor):
     def __init__(self,
                  band=(80, 2000),
                  fs_mlp=8e3,
@@ -232,7 +232,7 @@ def main():
     s = np.concatenate( (s1, s2) )
 
 
-    direct_reconstructor = DirectReconstructor(
+    mlp_reconstructor = MlpReconstructor(
         band=(80,2000),
         fs_mlp=4e3,
         hidden_layer=4
@@ -240,7 +240,7 @@ def main():
 
 
     ### Training
-    direct_reconstructor.train(
+    mlp_reconstructor.train(
         s,
         fs,
         maxfun=300
@@ -251,10 +251,10 @@ def main():
     anfs = run_ear(
         sound=s,
         fs=fs,
-        cfs=direct_reconstructor.cfs,
-        anf_num=direct_reconstructor.anf_num
+        cfs=mlp_reconstructor.cfs,
+        anf_num=mlp_reconstructor.anf_num
     )
-    r, fs = direct_reconstructor.run(
+    r, fs = mlp_reconstructor.run(
         anfs
     )
 

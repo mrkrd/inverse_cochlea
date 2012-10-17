@@ -11,7 +11,7 @@ except ImportError:
     print "ISgram reconstruction not loaded (probably pytave missing)"
 
 
-from direct_reconstr import DirectReconstructor
+from mlp_reconstr import MlpReconstructor
 
 from common import run_ear, band_pass_filter
 
