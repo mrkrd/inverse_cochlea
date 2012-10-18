@@ -8,6 +8,7 @@ import numpy as np
 import scipy.signal as dsp
 import multiprocessing
 import cPickle as pickle
+from collections import namedtuple
 
 import cochlea
 import marlib.thorns as th
@@ -15,6 +16,9 @@ import marlib.thorns as th
 import joblib
 mem = joblib.Memory("work", verbose=2)
 
+
+ANF = namedtuple("ANF", "data, fs, cfs, type")
+Signal = namedtuple("Signal", "data, fs")
 
 
 class Reconstructor(object):
@@ -44,7 +48,7 @@ def band_pass_filter(signal, fs, band):
 def run_ear(sound,
             fs,
             cfs,
-            anf=(0,1000,0),
+            anf_type=(0,1000,0),
             cohc=1,
             cihc=1):
 
@@ -54,11 +58,11 @@ def run_ear(sound,
     sound_model = dsp.resample(sound, len(sound) * fs_model / fs)
 
 
-    if isinstance(anf, tuple):
-        anf = cochlea.run_zilany2009_human(
+    if isinstance(anf_type, tuple):
+        anf_trains = cochlea.run_zilany2009_human(
             sound=sound_model,
             fs=fs_model,
-            anf_num=anf,
+            anf_num=anf_type,
             seed=0,
             cf=cfs,
             cohc=cohc,
@@ -66,18 +70,17 @@ def run_ear(sound,
             parallel=True
         )
         acc = th.accumulate_spike_trains(
-            anf,
+            anf_trains,
             keep=['duration', 'cf']
         )
         arr = th.trains_to_array(acc, fs_model)
         cfs = acc['cf']
 
-    elif anf in ('hsr','msr','lsr'):
+    elif anf_type in ('hsr','msr','lsr'):
         arr,cfs = cochlea.run_zilany2009_human_psp(
             sound=sound_model,
             fs=fs_model,
-            anf_type=anf,
-            seed=0,
+            anf_type=anf_type,
             cf=cfs,
             cohc=cohc,
             cihc=cihc,
@@ -85,45 +88,37 @@ def run_ear(sound,
         )
 
 
+    anf = ANF(data=arr, fs=fs_model, cfs=cfs, type=anf_type)
 
-    arr = dsp.resample(arr, len(arr) * fs / fs_model)
-
-
-    return arr, cfs
+    return anf
 
 
-def _run_ear_helper( (anf_num, cf, sound, fs, cohc, cihc) ):
 
-    print "CF:", cf
-
-    fs_model = 100e3
-    sound_model = dsp.resample(sound, len(sound) * fs_model / fs)
-
-    ear = cochlea.Zilany2009_Human(
-        anf_num=anf_num,
-        cf=cf,
-        cohc=cohc,
-        cihc=cihc
-    )
-
-    anf = ear.run(
-        sound_model,
-        fs_model,
-        seed=0
-    )
-
-    anf_acc = th.accumulate_spike_trains(
-        anf,
-        ignore=['index', 'type']
-    )
-    train = th.trains_to_array(anf_acc, fs_model).squeeze()
-    train = dsp.resample(train, len(train) * fs / fs_model)
-
-    return train
 
 
 def main():
-    pass
+    fs = 16e3
+    t = np.arange(0, 0.1, 1/fs)
+    s = np.sin(2 * np.pi * t * 1000)
+    s = cochlea.set_dbspl(s, 50)
+
+    anf = run_ear(
+        sound=s,
+        fs=fs,
+        cfs=(80, 2000, 10),
+        anf_type='msr'
+    )
+
+
+    plt.imshow(
+        anf.data.T,
+        aspect='auto'
+    )
+    plt.show()
+
+
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
     main()

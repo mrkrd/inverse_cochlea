@@ -4,16 +4,23 @@ from __future__ import division
 
 __author__ = "Marek Rudnicki"
 
+import warnings
+
 
 try:
     from isgram_reconstr import ISgramReconstructor
 except ImportError:
-    print "ISgram reconstruction not loaded (probably pytave missing)"
+    warnings.warn("ISgram reconstruction not loaded (probably pytave missing)")
 
 
 from mlp_reconstr import MlpReconstructor
 
-from common import run_ear, band_pass_filter
+from common import (
+    run_ear,
+    band_pass_filter,
+    ANF,
+    Signal
+)
 
 import cPickle as pickle
 

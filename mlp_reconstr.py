@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import division
+from __future__ import print_function
 
 __author__ = "Marek Rudnicki"
 
@@ -11,27 +12,32 @@ from collections import namedtuple
 import ffnet
 import joblib
 
-from common import run_ear, band_pass_filter, Reconstructor
+from common import (
+    run_ear,
+    band_pass_filter,
+    Reconstructor,
+    Signal
+)
 
-Net = namedtuple("Net", "net, fs, cfs, win_len")
-Signal = namedtuple("Signal", "data, fs")
 
-mem = joblib.Memory("work", verbose=0)
+# Net = namedtuple("Net", "net, fs, cfs, win_len")
+
+
+mem = joblib.Memory("work", verbose=2)
 
 
 
 @mem.cache
-def _train_tnc(net, anfs, signal, **kwargs):
-    input_data, target_data = _make_mlp_data(
+def _train_tnc(reconstr, anf, signal, **kwargs):
+    input_data, target_data = _make_mlp_sets(
         net,
         anfs,
         signal
     )
 
-    net.net.train_tnc(
+    reconstr.net.train_tnc(
         input_data,
         target_data,
-        # maxfun=iter_num,
         messages=1,
         nproc=None,
         **kwargs
@@ -63,14 +69,14 @@ class MlpReconstructor(Reconstructor):
 
 
 
-    def train(self, sound, fs, filter=True, func=_train_tnc, **kwargs):
+    def train(self, sound, fs, filter=True, func=None, **kwargs):
         if self.fs is None:
             self.fs = fs
         else:
             assert self.fs == fs
 
-        if filter and isinstance(self.band, tuple):
-            print "Filtering the siganl:", self.band
+        if filter:
+            print("Filtering the siganl:", self.band)
             sound = band_pass_filter(sound, fs, self.band)
 
 
@@ -134,14 +140,16 @@ class MlpReconstructor(Reconstructor):
 
 
 
-        self._net = func(
-            net=self._net,
-            anfs=anfs,
-            signal=s,
-            **kwargs
-        )
+        if func is None:
+            self._net = _train_tnc(
+                net=self._net,
+                anfs=anfs,
+                signal=s,
+                **kwargs
+            )
+        else:
 
-
+            pass
 
 
 
@@ -152,7 +160,7 @@ class MlpReconstructor(Reconstructor):
 
 
         ### Run MLP
-        input_data = _make_mlp_data(
+        input_data = _make_mlp_sets(
             self._net,
             anfs
         )
@@ -168,26 +176,19 @@ class MlpReconstructor(Reconstructor):
 
 
 
-def _make_mlp_data(net, anfs, signal=None):
-    fs_anf = anfs['fs'][0]
-    assert np.all(anfs['fs'] == fs_anf)
+def _make_mlp_sets(win_len, fs, anf, signal=None):
 
 
-    ### Select ANF channels
-    trains = []
-    for cf in net.cfs:
-        trains.append( anfs[anfs['cfs']==cf]['trains'] )
-    trains = np.array(trains).T.squeeze()
-
-    ### Resample ANF to net.fs
-    anf_mat = dsp.resample(
-        trains,
-        len(trains) * net.fs / fs_anf
+    ### Resample data to the desired output fs
+    anf_data = dsp.resample(
+        anf.data,
+        len(anf.data) * fs / anf.fs
     )
     if signal is not None:
-        sig = dsp.resample(signal.data, len(anf_mat))
-
-
+        signal_data = dsp.resample(
+            signal.data,
+            len(signal.data) * fs / signal.fs
+        )
 
     input_data = []
     target_data = []
