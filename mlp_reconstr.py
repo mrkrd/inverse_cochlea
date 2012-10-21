@@ -20,9 +20,6 @@ from common import (
 )
 
 
-# Net = namedtuple("Net", "net, fs, cfs, win_len")
-
-
 mem = joblib.Memory("work", verbose=2)
 
 
@@ -57,15 +54,49 @@ class MlpReconstructor(Reconstructor):
                  anf_num=(0,1000,0)
              ):
 
+        assert fs_mlp/2 > band[1], "Nyquist"
+
+
         self.fs = None
         self.band = band
         self.fs_mlp = fs_mlp
         self.channel_num = channel_num
         self.anf_num = anf_num
-        self._hidden_layer = hidden_layer
 
         self.cfs = None
-        self._net = None
+
+
+
+        self.win_len = 10e-3
+        win_samp = int(np.round(win_len*fs_mlp))
+
+        if hidden_layer > 1:
+            conec = ffnet.mlgraph(
+                (win_samp*channel_num,
+                 int(hidden_layer),
+                 1)
+            )
+
+        elif hidden_layer > 0:
+            conec = ffnet.mlgraph(
+                (win_samp*channel_num,
+                 int(win_samp*channel_num*hidden_layer),
+                 1)
+            )
+
+        elif hidden_layer == 0:
+            conec = ffnet.mlgraph(
+                (win_samp*channel_num,
+                 1)
+            )
+
+        else:
+            raise RuntimeError("hidden_layer should not be negative")
+
+
+        np.random.seed(0)
+        self.net = ffnet.ffnet(conec)
+
 
 
 
@@ -81,6 +112,7 @@ class MlpReconstructor(Reconstructor):
 
 
         s = Signal(sound, fs)
+
 
         if isinstance(self.band, tuple):
             cfs = (self.band[0], self.band[1], self.channel_num)
@@ -99,44 +131,6 @@ class MlpReconstructor(Reconstructor):
             self.cfs = np.unique(anfs['cfs'])
 
 
-
-
-        if self._net is None:
-            win_len = int(np.round(10e-3 * self.fs_mlp))
-
-            if self._hidden_layer > 1:
-                conec = ffnet.mlgraph(
-                    (win_len*self.channel_num,
-                     int(self._hidden_layer),
-                     1)
-                )
-
-            elif self._hidden_layer > 0:
-                conec = ffnet.mlgraph(
-                    (win_len*self.channel_num,
-                     int(win_len*self.channel_num*self._hidden_layer),
-                     1)
-                )
-
-            elif self._hidden_layer == 0:
-                conec = ffnet.mlgraph(
-                    (win_len*self.channel_num,
-                     1)
-                )
-
-            else:
-                assert False, "hidden_layer should not be negative"
-
-
-            np.random.seed(0)
-            net = ffnet.ffnet(conec)
-
-            self._net = Net(
-                net=net,
-                fs=self.fs_mlp,
-                cfs=self.cfs,
-                win_len=win_len
-            )
 
 
 
@@ -178,6 +172,9 @@ class MlpReconstructor(Reconstructor):
 
 def _make_mlp_sets(win_len, fs, anf, signal=None):
 
+    ### Window length in samples
+    win_samp = int(np.round(win_len*fs))
+
 
     ### Resample data to the desired output fs
     anf_data = dsp.resample(
@@ -190,31 +187,30 @@ def _make_mlp_sets(win_len, fs, anf, signal=None):
             len(signal.data) * fs / signal.fs
         )
 
-    input_data = []
-    target_data = []
-    for i in np.arange(len(anf_mat) - net.win_len):
-        lo = i
-        hi = i + net.win_len
 
-        input_data.append( anf_mat[lo:hi].flatten() )
-        if signal is not None:
-            target_data.append( [sig[lo]] )
-
-    input_data = np.array(input_data, dtype=float)
-    target_data = np.array(target_data, dtype=float)
-
-
-    # import matplotlib.pyplot as plt
-    # fig, ax = plt.subplots(2,1)
-    # ax[0].imshow(input_data.T, aspect='auto')
-    # if signal is not None:
-    #     ax[1].plot(target_data)
-    # plt.show()
-
+    ### Find the shorter data
     if signal is None:
-        return input_data
+        data_len = len(anf_data)
     else:
-        return input_data, target_data
+        data_len = min([len(anf_data), len(signal_data)])
+
+
+    input_set = []
+    target_set = []
+    for i in np.arange(data_len - win_samp + 1):
+        lo = i
+        hi = i + win_samp
+
+        input_set.append( anf_data[lo:hi].flatten() )
+
+        if signal is not None:
+            target_set.append( [signal_data[lo]] )
+
+    input_set = np.array(input_set, dtype=float)
+    target_set = np.array(target_set, dtype=float)
+
+
+    return input_set, target_set
 
 
 
