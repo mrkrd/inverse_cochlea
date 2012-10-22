@@ -51,24 +51,27 @@ class MlpReconstructor(Reconstructor):
                  fs_mlp=8e3,
                  hidden_layer=4,
                  channel_num=10,
-                 anf_num=(0,1000,0)
+                 anf_type=(0,1000,0)
              ):
 
-        assert fs_mlp/2 > band[1], "Nyquist"
+        assert fs_mlp/2 >= band[1], "Nyquist"
 
 
         self.fs = None
         self.band = band
         self.fs_mlp = fs_mlp
         self.channel_num = channel_num
-        self.anf_num = anf_num
+        self.anf_type = anf_type
 
         self.cfs = None
 
 
 
         self.win_len = 10e-3
-        win_samp = int(np.round(win_len*fs_mlp))
+        win_samp = int(np.round(
+            self.win_len*self.fs_mlp
+        ))
+
 
         if hidden_layer > 1:
             conec = ffnet.mlgraph(
@@ -123,7 +126,7 @@ class MlpReconstructor(Reconstructor):
             sound=s.data,
             fs=s.fs,
             cfs=cfs,
-            anf_num=self.anf_num
+            anf_type=self.anf_type
         )
 
 
@@ -148,9 +151,9 @@ class MlpReconstructor(Reconstructor):
 
 
     def run(self, anfs, filter=True):
-        ### Check anf_num
-        for anf_num in anfs['anf_num']:
-            assert np.all( anf_num == np.array(self.anf_num) )
+        ### Check anf_type
+        for anf_type in anfs['anf_type']:
+            assert np.all( anf_type == np.array(self.anf_type) )
 
 
         ### Run MLP
@@ -249,7 +252,7 @@ def main():
         sound=s,
         fs=fs,
         cfs=mlp_reconstructor.cfs,
-        anf_num=mlp_reconstructor.anf_num
+        anf_type=mlp_reconstructor.anf_type
     )
     r, fs = mlp_reconstructor.run(
         anfs
