@@ -18,7 +18,7 @@ import arss
 
 from common import band_pass_filter, run_ear
 
-mem = joblib.Memory("tmp", verbose=2)
+mem = joblib.Memory("work", verbose=2)
 Net = namedtuple("Net", "net, freq, fs, fs_sgram, cfs, win_len")
 SGram = namedtuple("SGram", "data, fs, freqs, fs_sgram")
 

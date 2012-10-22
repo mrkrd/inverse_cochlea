@@ -14,7 +14,7 @@ pytave.addpath("~/src/ltfat")
 pytave.addpath("/nfs/system/opt/ltfat")
 pytave.eval(0, 'ltfatstart')
 
-mem = joblib.Memory(cachedir="tmp", verbose=2)
+mem = joblib.Memory(cachedir="work", verbose=2)
 
 SGram = namedtuple("SGram", "data, fs, freqs, time_shift")
 

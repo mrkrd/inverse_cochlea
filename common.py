@@ -74,7 +74,7 @@ def run_ear(sound,
             keep=['duration', 'cf']
         )
         arr = th.trains_to_array(acc, fs_model)
-        cfs = acc['cf']
+        cfs = np.array(acc['cf'])
 
     elif anf_type in ('hsr','msr','lsr'):
         arr,cfs = cochlea.run_zilany2009_human_psp(

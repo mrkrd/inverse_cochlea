@@ -25,16 +25,18 @@ mem = joblib.Memory("work", verbose=2)
 
 
 @mem.cache
-def _train_tnc(reconstr, anf, signal, **kwargs):
-    input_data, target_data = _make_mlp_sets(
-        net,
-        anfs,
-        signal
+def _train_tnc(net, fs, win_len, anf, signal, **kwargs):
+
+    input_set, target_set = _make_mlp_sets(
+        win_len=win_len,
+        fs=fs,
+        anf=anf,
+        signal=signal
     )
 
-    reconstr.net.train_tnc(
-        input_data,
-        target_data,
+    net.train_tnc(
+        input_set,
+        target_set,
         messages=1,
         nproc=None,
         **kwargs
@@ -45,21 +47,21 @@ def _train_tnc(reconstr, anf, signal, **kwargs):
 
 
 
+
 class MlpReconstructor(Reconstructor):
     def __init__(self,
                  band=(80, 2000),
                  fs_mlp=8e3,
                  hidden_layer=4,
                  channel_num=10,
-                 anf_type=(0,1000,0)
+                 anf_type='msr'
              ):
 
         assert fs_mlp/2 >= band[1], "Nyquist"
 
 
-        self.fs = None
+        self.fs = fs_mlp
         self.band = band
-        self.fs_mlp = fs_mlp
         self.channel_num = channel_num
         self.anf_type = anf_type
 
@@ -69,7 +71,7 @@ class MlpReconstructor(Reconstructor):
 
         self.win_len = 10e-3
         win_samp = int(np.round(
-            self.win_len*self.fs_mlp
+            self.win_len*self.fs
         ))
 
 
@@ -104,10 +106,6 @@ class MlpReconstructor(Reconstructor):
 
 
     def train(self, sound, fs, filter=True, func=None, **kwargs):
-        if self.fs is None:
-            self.fs = fs
-        else:
-            assert self.fs == fs
 
         if filter:
             print("Filtering the siganl:", self.band)
@@ -122,51 +120,52 @@ class MlpReconstructor(Reconstructor):
         else:
             cfs = self.band
 
-        anfs = run_ear(
+        anf = run_ear(
             sound=s.data,
             fs=s.fs,
             cfs=cfs,
             anf_type=self.anf_type
         )
 
-
         if self.cfs is None:
-            self.cfs = np.unique(anfs['cfs'])
-
-
-
-
-
-        if func is None:
-            self._net = _train_tnc(
-                net=self._net,
-                anfs=anfs,
-                signal=s,
-                **kwargs
-            )
+            self.cfs = anf.cfs
         else:
-
-            pass
-
+            assert np.all(self.cfs == anf.cfs)
 
 
-    def run(self, anfs, filter=True):
+
+        assert func is None, "Not implemented"
+
+
+        self.net = _train_tnc(
+            net=self.net,
+            fs=self.fs,
+            win_len=self.win_len,
+            anf=anf,
+            signal=s,
+            **kwargs
+        )
+
+
+
+    def run(self, anf, filter=True):
+
         ### Check anf_type
-        for anf_type in anfs['anf_type']:
-            assert np.all( anf_type == np.array(self.anf_type) )
+        assert self.anf_type == anf.type
 
 
         ### Run MLP
-        input_data = _make_mlp_sets(
-            self._net,
-            anfs
+        input_set, _ = _make_mlp_sets(
+            win_len=self.win_len,
+            fs=self.fs,
+            anf=anf
         )
 
-        output_data = self._net.net(input_data)
-        sound = output_data.squeeze()
-        sound = dsp.resample(sound, len(sound) * self.fs / self._net.fs)
+        output_set = self.net(input_set)
+        sound = output_set.squeeze()
+        # sound = dsp.resample(sound, len(sound) * self.fs / self._net.fs)
 
-        if filter and isinstance(self.band, tuple):
+        if filter:
             sound = band_pass_filter(sound, self.fs, self.band)
 
         return sound, self.fs
@@ -235,7 +234,8 @@ def main():
     mlp_reconstructor = MlpReconstructor(
         band=(80,2000),
         fs_mlp=4e3,
-        hidden_layer=4
+        hidden_layer=0,
+        anf_type='msr' #(0,1000,0)
     )
 
 
@@ -248,22 +248,22 @@ def main():
 
 
     ### Testing
-    anfs = run_ear(
+    anf = run_ear(
         sound=s,
         fs=fs,
         cfs=mlp_reconstructor.cfs,
         anf_type=mlp_reconstructor.anf_type
     )
     r, fs = mlp_reconstructor.run(
-        anfs
+        anf
     )
 
 
 
-    fig, ax = plt.subplots(nrows=3, ncols=1)
+    fig, ax = plt.subplots(3, 1)
     ax[0].plot(s)
+    ax[1].imshow(anf.data.T, aspect='auto')
     ax[2].plot(r)
-    ax[1].imshow(anfs['trains'], aspect='auto')
 
     plt.show()
 

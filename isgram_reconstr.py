@@ -18,7 +18,7 @@ import thorns as th
 from sgram import calc_sgram, calc_isgram, SGram
 from common import band_pass_filter, run_ear
 
-mem = joblib.Memory("tmp", verbose=2)
+mem = joblib.Memory("work", verbose=2)
 Net = namedtuple("Net", "net, freq, fs, time_shift, cfs, win_len")
 
 
