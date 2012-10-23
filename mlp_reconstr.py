@@ -152,6 +152,7 @@ class MlpReconstructor(Reconstructor):
 
         ### Check anf_type
         assert self.anf_type == anf.type
+        assert np.all(self.cfs = anf.cfs)
 
 
         ### Run MLP
