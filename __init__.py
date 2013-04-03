@@ -22,6 +22,10 @@ from common import (
     Signal
 )
 
+from cochlea import (
+    set_dbspl
+)
+
 import cPickle as pickle
 
 def load(fname):

@@ -7,7 +7,6 @@ __author__ = "Marek Rudnicki"
 
 import numpy as np
 import scipy.signal as dsp
-from collections import namedtuple
 
 import ffnet
 import joblib
@@ -69,7 +68,7 @@ class MlpReconstructor(Reconstructor):
 
 
 
-        self.win_len = 10e-3
+        self.win_len = 40e-3
         win_samp = int(np.round(
             self.win_len*self.fs
         ))
@@ -152,7 +151,7 @@ class MlpReconstructor(Reconstructor):
 
         ### Check anf_type
         assert self.anf_type == anf.type
-        assert np.all(self.cfs = anf.cfs)
+        assert np.all(self.cfs == anf.cfs)
 
 
         ### Run MLP
@@ -214,65 +213,3 @@ def _make_mlp_sets(win_len, fs, anf, signal=None):
 
 
     return input_set, target_set
-
-
-
-def main():
-    fs = 16e3
-    t = np.arange(0, 0.1, 1/fs)
-
-    s1 = dsp.chirp(t, 50, t[-1], 2000)
-    s1 = cochlea.set_dbspl(s1, 60)
-    s1[300:400] = 0
-
-    s2 = dsp.chirp(t, 2000, t[-1], 50)
-    s2 = cochlea.set_dbspl(s2, 50)
-    s2[300:400] = 0
-
-    s = np.concatenate( (s1, s2) )
-
-
-    mlp_reconstructor = MlpReconstructor(
-        band=(80,2000),
-        fs_mlp=4e3,
-        hidden_layer=0,
-        anf_type='msr' #(0,1000,0)
-    )
-
-
-    ### Training
-    mlp_reconstructor.train(
-        s,
-        fs,
-        maxfun=300
-    )
-
-
-    ### Testing
-    anf = run_ear(
-        sound=s,
-        fs=fs,
-        cfs=mlp_reconstructor.cfs,
-        anf_type=mlp_reconstructor.anf_type
-    )
-    r, fs = mlp_reconstructor.run(
-        anf
-    )
-
-
-
-    fig, ax = plt.subplots(3, 1)
-    ax[0].plot(s)
-    ax[1].imshow(anf.data.T, aspect='auto')
-    ax[2].plot(r)
-
-    plt.show()
-
-
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    import cochlea
-
-    main()

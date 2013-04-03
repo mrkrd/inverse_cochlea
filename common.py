@@ -11,7 +11,7 @@ import cPickle as pickle
 from collections import namedtuple
 
 import cochlea
-import marlib.thorns as th
+import elmar.thorns as th
 
 import joblib
 mem = joblib.Memory("work", verbose=2)
@@ -59,7 +59,7 @@ def run_ear(sound,
 
 
     if isinstance(anf_type, tuple):
-        anf_trains = cochlea.run_zilany2009_human(
+        anf_trains = cochlea.run_zilany2013(
             sound=sound_model,
             fs=fs_model,
             anf_num=anf_type,
@@ -67,7 +67,7 @@ def run_ear(sound,
             cf=cfs,
             cohc=cohc,
             cihc=cihc,
-            parallel=True
+            species='human',
         )
         acc = th.accumulate_spike_trains(
             anf_trains,
@@ -84,7 +84,6 @@ def run_ear(sound,
             cf=cfs,
             cohc=cohc,
             cihc=cihc,
-            parallel=True
         )
 
 
