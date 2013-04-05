@@ -77,13 +77,14 @@ def run_ear(sound,
         cfs = np.array(acc['cf'])
 
     elif anf_type in ('hsr','msr','lsr'):
-        arr,cfs = cochlea.run_zilany2009_human_psp(
+        rates = cochlea.run_zilany2013_rate(
             sound=sound_model,
             fs=fs_model,
             anf_type=anf_type,
             cf=cfs,
             cohc=cohc,
             cihc=cihc,
+            species='human',
         )
 
 
