@@ -17,7 +17,6 @@ from mlp_reconstr import MlpReconstructor
 
 from common import (
     run_ear,
-    band_pass_filter,
     ANF,
     Signal
 )

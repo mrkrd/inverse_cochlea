@@ -28,29 +28,18 @@ class Reconstructor(object):
 
 
 
-def band_pass_filter(signal, fs, band):
-    lo, hi = band
-
-    freqs = np.abs( np.fft.fftfreq(signal.size, 1/fs) )
-
-    signal_fft = np.fft.fft(signal)
-    signal_fft[ (freqs < lo) | (freqs > hi) ] = 0
-
-    filtered = np.fft.ifft(signal_fft)
-    filtered = np.array(filtered.real)
-
-    return filtered
-
 
 
 
 @mem.cache
-def run_ear(sound,
-            fs,
-            cfs,
-            anf_type=(0,1000,0),
-            cohc=1,
-            cihc=1):
+def run_ear(
+        sound,
+        fs,
+        cfs,
+        anf_type=(0,1000,0),
+        cohc=1,
+        cihc=1
+):
 
     assert sound.ndim == 1
 
@@ -80,7 +69,7 @@ def run_ear(sound,
         rates = cochlea.run_zilany2013_rate(
             sound=sound_model,
             fs=fs_model,
-            anf_type=anf_type,
+            anf_types=[anf_type],
             cf=cfs,
             cohc=cohc,
             cihc=cihc,

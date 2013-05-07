@@ -26,10 +26,9 @@ def test_make_mlp_sets():
     signal = Signal(data=signal_data, fs=1)
 
     input_set, target_set = mlp_reconstr._make_mlp_sets(
+        arrays=[anf, signal],
         win_len=2,
-        fs=1,
-        anf=anf,
-        signal=signal
+        fs_net=1,
     )
 
 
