@@ -35,7 +35,7 @@ class Reconstructor(object):
 def run_ear(
         sound,
         fs,
-        cfs,
+        cf,
         anf_type=(0,1000,0),
         cohc=1,
         cihc=1
@@ -53,7 +53,7 @@ def run_ear(
             fs=fs_model,
             anf_num=anf_type,
             seed=0,
-            cf=cfs,
+            cf=cf,
             cohc=cohc,
             cihc=cihc,
             species='human',
@@ -70,11 +70,15 @@ def run_ear(
             sound=sound_model,
             fs=fs_model,
             anf_types=[anf_type],
-            cf=cfs,
+            cf=cf,
             cohc=cohc,
             cihc=cihc,
             species='human',
+            seed=0
         )
+
+        arr = np.array(rates['msr'].tolist()).T
+        cfs = np.array(rates.index)
 
 
     anf = ANF(data=arr, fs=fs_model, cfs=cfs, type=anf_type)

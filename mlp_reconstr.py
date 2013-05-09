@@ -85,9 +85,6 @@ class MlpReconstructor(Reconstructor):
 
 
 
-        self._train = mem.cache(train_tnc)
-
-
 
 
     def train(self, sound, fs, filter=True, **kwargs):
@@ -98,14 +95,14 @@ class MlpReconstructor(Reconstructor):
 
 
         if isinstance(self.band, tuple):
-            cfs = (self.band[0], self.band[1], self.channel_num)
+            cf = (self.band[0], self.band[1], self.channel_num)
         else:
-            cfs = self.band
+            cf = self.band
 
         anf = run_ear(
             sound=sound,
             fs=fs,
-            cfs=cfs,
+            cf=cf,
             anf_type=self.anf_type
         )
 
@@ -116,12 +113,9 @@ class MlpReconstructor(Reconstructor):
 
 
 
-        self.net = _train_tnc(
-            net=self.net,
-            fs=self.fs_net,
-            win_len=self.win_len,
+        self._train_tnc(
             anf=anf,
-            signal=s,
+            signal=sound,
             **kwargs
         )
 
@@ -155,16 +149,16 @@ class MlpReconstructor(Reconstructor):
 
 
 
-def _train_tnc(self, anf, signal, fs, **kwargs):
+def _train_tnc(net, fs_net, win_len, anf, signal, **kwargs):
 
     input_set, target_set = _make_mlp_sets(
-        win_len=win_len,
-        fs_net=fs_net,
+        win_len=self.win_len,
+        fs_net=self.fs_net,
         anf=anf,
         signal=signal
     )
 
-    net.train_tnc(
+    self.net.train_tnc(
         input_set,
         target_set,
         messages=1,
@@ -172,54 +166,50 @@ def _train_tnc(self, anf, signal, fs, **kwargs):
         **kwargs
     )
 
-    return net
 
 
 
 
 
 
-def _make_mlp_sets(anf, win_len, fs_net, signal=None):
+def _make_mlp_sets(win_len, fs_net, anf, signal=None):
 
     ### Window length in samples
     win_samp = int(np.round(win_len*fs_net))
 
 
     ### Resample data to the desired output fs
-    resampled = []
-    for arr in arrays:
-        res = dsp.resample(
-            arr.data,
-            len(arr.data) * fs_net / arr.fs
-        )
-        if res.ndim == 1:
-            res = np.expand_dims(res, axis=1)
-        resampled.append(res)
-
-
-    ### Find the shortest input data
-    data_len = min(
-        [len(res) for res in resampled]
+    anf_data = dsp.resample(
+        anf.data,
+        len(anf.data) * fs_net / anf.fs
     )
+    if signal is not None:
+        signal_data = dsp.resample(
+            signal.data,
+            len(signal.data) * fs_net / signal.fs
+        )
 
-    sets = [[] for res in resampled]
+
+    ### Find the shorter data
+    if signal is None:
+        data_len = len(anf_data)
+    else:
+        data_len = min([len(anf_data), len(signal_data)])
+
+
+    input_set = []
+    target_set = []
     for i in np.arange(data_len - win_samp + 1):
         lo = i
         hi = i + win_samp
 
-        print()
-        print(i)
+        input_set.append( anf_data[lo:hi].flatten() )
 
-        for r,s in zip(resampled,sets):
-            s.append( r[lo:hi].flatten() )
+        if signal is not None:
+            target_set.append( [signal_data[lo]] )
 
-        print('r', resampled)
-        print('s', sets)
-        # if signal is not None:
-        #     target_set.append( [signal_data[lo]] )
-
-    # input_set = np.array(input_set, dtype=float)
-    # target_set = np.array(target_set, dtype=float)
+    input_set = np.array(input_set, dtype=float)
+    target_set = np.array(target_set, dtype=float)
 
 
-    # return input_set, target_set
+    return input_set, target_set
