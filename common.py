@@ -31,12 +31,12 @@ class Reconstructor(object):
 
 
 
-@mem.cache
+#@mem.cache
 def run_ear(
         sound,
         fs,
         cf,
-        anf_type=(0,1000,0),
+        anf_type='msr',
         cohc=1,
         cihc=1
 ):
@@ -73,8 +73,7 @@ def run_ear(
             cf=cf,
             cohc=cohc,
             cihc=cihc,
-            species='human',
-            seed=0
+            species='human'
         )
 
         arr = np.array(rates['msr'].tolist()).T

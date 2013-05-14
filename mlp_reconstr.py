@@ -89,6 +89,7 @@ class MlpReconstructor(Reconstructor):
 
     def train(self, sound, fs, filter=True, **kwargs):
 
+
         if filter:
             print("Filtering the siganl:", self.band)
             sound = wv.fft_filter(sound, fs, self.band)
@@ -112,10 +113,14 @@ class MlpReconstructor(Reconstructor):
             assert np.all(self.cfs == anf.cfs)
 
 
+        signal = Signal(sound, fs)
 
-        self._train_tnc(
+        _train_tnc(
+            net=self.net,
+            fs_net=self.fs_net,
+            win_len=self.win_len,
             anf=anf,
-            signal=sound,
+            signal=signal,
             **kwargs
         )
 
@@ -124,14 +129,14 @@ class MlpReconstructor(Reconstructor):
     def run(self, anf, filter=True):
 
         ### Check anf_type
-        assert self.anf_type == anf.type
+        assert self.anf_type == anf.type, "{} {}".format(self.anf_type, anf.type)
         assert np.all(self.cfs == anf.cfs)
 
 
         ### Run MLP
         input_set, _ = _make_mlp_sets(
             win_len=self.win_len,
-            fs=self.fs,
+            fs_net=self.fs_net,
             anf=anf
         )
 
@@ -140,25 +145,25 @@ class MlpReconstructor(Reconstructor):
         # sound = dsp.resample(sound, len(sound) * self.fs / self._net.fs)
 
         if filter:
-            sound = band_pass_filter(sound, self.fs, self.band)
+            sound = wv.fft_filter(sound, self.fs_net, self.band)
 
-        return sound, self.fs
-
-
+        return sound, self.fs_net
 
 
 
 
+
+# @mem.cache
 def _train_tnc(net, fs_net, win_len, anf, signal, **kwargs):
 
     input_set, target_set = _make_mlp_sets(
-        win_len=self.win_len,
-        fs_net=self.fs_net,
+        win_len=win_len,
+        fs_net=fs_net,
         anf=anf,
         signal=signal
     )
 
-    self.net.train_tnc(
+    net.train_tnc(
         input_set,
         target_set,
         messages=1,
@@ -183,6 +188,7 @@ def _make_mlp_sets(win_len, fs_net, anf, signal=None):
         anf.data,
         len(anf.data) * fs_net / anf.fs
     )
+
     if signal is not None:
         signal_data = dsp.resample(
             signal.data,
@@ -210,6 +216,5 @@ def _make_mlp_sets(win_len, fs_net, anf, signal=None):
 
     input_set = np.array(input_set, dtype=float)
     target_set = np.array(target_set, dtype=float)
-
 
     return input_set, target_set
