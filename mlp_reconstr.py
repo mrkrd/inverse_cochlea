@@ -34,6 +34,7 @@ class MlpReconstructor(Reconstructor):
             fs_net=8e3,
             hidden_layer=4,
             channel_num=10,
+            win_len=10e-3,
             anf_type='msr'
     ):
 
@@ -50,7 +51,7 @@ class MlpReconstructor(Reconstructor):
 
 
 
-        self.win_len = 40e-3
+        self.win_len = win_len
         win_samp = int(np.round(
             self.win_len * fs_net
         ))
@@ -147,7 +148,7 @@ class MlpReconstructor(Reconstructor):
         if filter:
             sound = wv.fft_filter(sound, self.fs_net, self.band)
 
-        return sound, self.fs_net
+        return Signal(sound, self.fs_net)
 
 
 

@@ -76,8 +76,12 @@ def run_ear(
             species='human'
         )
 
-        arr = np.array(rates['msr'].tolist()).T
-        cfs = np.array(rates.index)
+        arr = np.array(
+            rates
+        )
+        cfs = np.array(
+            rates.columns.get_level_values('cf')
+        )
 
 
     anf = ANF(data=arr, fs=fs_model, cfs=cfs, type=anf_type)
