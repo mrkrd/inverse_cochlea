@@ -23,14 +23,15 @@ Net = namedtuple("Net", "net, freq, fs, time_shift, cfs, win_len")
 
 
 class ISgramReconstructor(object):
-    def __init__(self,
-                 time_shift=2,
-                 hidden_layer=0.25,
-                 band=(2000,8000),
-                 channel_num=51,
-                 cfs_per_channel=[1, 1.2],
-                 anf_num=(0,1000,0)
-             ):
+    def __init__(
+            self,
+            time_shift=2,
+            hidden_layer=0.25,
+            band=(2000,8000),
+            channel_num=51,
+            cfs_per_channel=[1, 1.2],
+            anf_num=(0,1000,0)
+    ):
 
         self.fs = None
         self.time_shift = time_shift
