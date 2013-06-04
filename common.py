@@ -11,7 +11,7 @@ import cPickle as pickle
 from collections import namedtuple
 
 import cochlea
-import elmar.thorns as th
+import mrlib.thorns as th
 
 import joblib
 mem = joblib.Memory("work", verbose=2)

@@ -11,7 +11,7 @@ import scipy.signal as dsp
 import ffnet
 import joblib
 
-import elmar.waves as wv
+import mrlib.waves as wv
 
 from common import (
     run_ear,

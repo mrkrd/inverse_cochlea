@@ -8,7 +8,7 @@ __author__ = "Marek Rudnicki"
 import numpy as np
 import scipy.signal as dsp
 
-import elmar.waves as wv
+import mrlib.waves as wv
 import inverse_cochlea
 import matplotlib.pyplot as plt
 
