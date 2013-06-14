@@ -12,11 +12,10 @@ import multiprocessing
 import ffnet
 import joblib
 
-import cochlea
-import thorns as th
-
 from sgram import calc_sgram, calc_isgram, SGram
-from common import band_pass_filter, run_ear
+from common import run_ear
+
+import mrlib.waves as wv
 
 mem = joblib.Memory("work", verbose=2)
 Net = namedtuple("Net", "net, freq, fs, time_shift, cfs, win_len")
@@ -47,13 +46,16 @@ class ISgramReconstructor(object):
 
 
 
-    def train(self, sound, fs, iter_num=1000):
+    def train(self, sound, fs, filter=True, iter_num=1000):
         if self.fs is None:
             self.fs = fs
         else:
             assert self.fs == fs
 
-        sound = band_pass_filter(sound, fs, self.band)
+        if filter:
+            print("Filtering the siganl:", self.band)
+            sound = wv.fft_filter(sound, fs, self.band)
+
 
         if self._nets is None:
             self._nets = _generate_nets(
@@ -152,8 +154,8 @@ class ISgramReconstructor(object):
         signal = calc_isgram(sgram, iter_num)
 
         if filter:
-            signal = band_pass_filter(signal, fs, self.band)
-
+            print("Filtering the siganl:", self.band)
+            sound = wv.fft_filter(sound, fs, self.band)
 
 
         return signal, fs
@@ -257,7 +259,7 @@ def _train(nets, anfs, sgram, iter_num):
 
 def _make_mlp_data(net, anfs, sgram=None):
 
-    fs_anf = anfs['fs'][0]
+    fs_anf = anfs.fs
     assert np.all(anfs['fs'] == fs_anf)
 
 
@@ -378,4 +380,6 @@ def main():
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    import cochlea
+
     main()

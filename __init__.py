@@ -10,7 +10,8 @@ import warnings
 try:
     from isgram_reconstr import ISgramReconstructor
 except ImportError:
-    warnings.warn("ISgram reconstruction not loaded (probably pytave missing)")
+    warnings.warn("ISgram reconstruction not loaded (missing pytave or oct2py)")
+from isgram_reconstr import ISgramReconstructor
 
 
 from mlp_reconstr import MlpReconstructor
@@ -28,4 +29,5 @@ from cochlea import (
 import cPickle as pickle
 
 def load(fname):
-    return pickle.load(open(fname,'r'))
+    r = pickle.load(open(fname,'r'))
+    return r
