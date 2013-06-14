@@ -7,18 +7,46 @@ __author__ = "Marek Rudnicki"
 import numpy as np
 from collections import namedtuple
 
-import pytave
 import joblib
-
-pytave.addpath("~/src/ltfat")
-pytave.addpath("/nfs/system/opt/ltfat")
-pytave.eval(0, 'ltfatstart')
-
 mem = joblib.Memory(cachedir="work", verbose=2)
+
+
+_backend = None
+
+
+if _backend is None:
+    try:
+        import oct2py
+        octave = oct2py.Oct2Py()
+        _backend = 'oct2py'
+    except ImportError:
+        _backend = None
+
+if _backend is None:
+    try:
+        import pytave
+        _backend = 'pytave'
+    except ImportError:
+        _backend = None
+
+
+
+
+if _backend == 'pytave':
+    pytave.addpath("~/.local/opt/ltfat")
+    pytave.addpath("/nfs/system/opt/ltfat")
+    pytave.eval(0, 'ltfatstart')
+elif _backend == 'oct2py':
+    octave.addpath("~/.local/opt/ltfat")
+    octave.addpath("/nfs/system/opt/ltfat")
+    octave.call("ltfatstart", nout=0)
+
+
 
 SGram = namedtuple("SGram", "data, fs, freqs, time_shift")
 
-def calc_sgram(signal, fs, channel_num, time_shift):
+
+def calc_sgram_pytave(signal, fs, channel_num, time_shift):
 
     assert channel_num % 2, "channel_num must be odd"
     dgtreal_channel_num = (channel_num - 1) * 2
@@ -45,9 +73,36 @@ def calc_sgram(signal, fs, channel_num, time_shift):
     return sgram
 
 
+def calc_sgram_oct2py(signal, fs, channel_num, time_shift):
+
+    assert channel_num % 2, "channel_num must be odd"
+    dgtreal_channel_num = (channel_num - 1) * 2
+
+    octave.put('signal', signal)
+    octave.run(
+        'ss = dgtreal(signal, "gauss", {time_shift}, {dgtreal_channel_num})'.format(
+            time_shift=time_shift,
+            dgtreal_channel_num=dgtreal_channel_num
+        )
+    )
+    ss = octave.get('ss')
+
+    sg = np.abs(ss.T)**2
+
+    sgram = SGram(
+        data=sg,
+        fs=fs,
+        freqs=np.linspace(0, fs/2, sg.shape[1]),
+        time_shift=time_shift
+    )
+
+    return sgram
+
+
+
 
 @mem.cache
-def calc_isgram(sgram, iter_num=1000):
+def calc_isgram_pytave(sgram, iter_num=1000):
 
     channel_num = 2 * (sgram.data.shape[1] - 1)
 
@@ -71,6 +126,39 @@ def calc_isgram(sgram, iter_num=1000):
         'maxit',
         iter_num)
     r = r[0].squeeze()
+
+    return r
+
+
+
+
+
+
+@mem.cache
+def calc_isgram_oct2py(sgram, iter_num=1000):
+
+    channel_num = 2 * (sgram.data.shape[1] - 1)
+
+    ### Spectrogram len must be multiple of channel_num
+    m = len(sgram.data) % channel_num
+    if m > 0:
+        pad_len = channel_num - m
+        pad = np.zeros(( pad_len, sgram.data.shape[1] ))
+        padded = np.append(sgram.data, pad, axis=0)
+    else:
+        padded = sgram.data
+
+    octave.put('padded', padded.T)
+    octave.run(
+        'r = isgramreal(padded, "gauss", {time_shift}, {channel_num}, "maxit", {iter_num});'.format(
+            time_shift=sgram.time_shift,
+            channel_num=channel_num,
+            iter_num=iter_num
+        ),
+        verbose=True
+    )
+    r = octave.get('r')
+    r = np.squeeze(r)
 
     return r
 
@@ -110,6 +198,17 @@ def main():
     ax[2].plot(r)
     plt.show()
 
+
+
+
+if _backend == 'oct2py':
+    calc_isgram = calc_isgram_oct2py
+    calc_sgram = calc_sgram_oct2py
+elif _backend == 'pytave':
+    calc_isgram = calc_isgram_pytave
+    calc_sgram = calc_sgram_pytave
+else:
+    raise RuntimeError
 
 
 
