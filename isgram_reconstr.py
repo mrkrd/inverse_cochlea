@@ -375,8 +375,10 @@ def main():
     ax[2].plot(r)
     ax[1].imshow(anfs['trains'], aspect='auto')
 
-
     plt.show()
+
+
+
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
