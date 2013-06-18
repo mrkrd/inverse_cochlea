@@ -43,10 +43,10 @@ elif _backend == 'oct2py':
 
 
 
-SGram = namedtuple("SGram", "data, fs, freqs, time_shift")
+SGram = namedtuple("SGram", "data, fs, freqs, sgram_shift")
 
 
-def calc_sgram_pytave(signal, fs, channel_num, time_shift):
+def calc_sgram_pytave(signal, fs, channel_num, sgram_shift):
 
     assert channel_num % 2, "channel_num must be odd"
     dgtreal_channel_num = (channel_num - 1) * 2
@@ -56,7 +56,7 @@ def calc_sgram_pytave(signal, fs, channel_num, time_shift):
         'dgtreal',
         signal,
         'gauss',
-        time_shift,
+        sgram_shift,
         dgtreal_channel_num
     )
     ss = ss[0].squeeze()
@@ -67,21 +67,21 @@ def calc_sgram_pytave(signal, fs, channel_num, time_shift):
         data=sg,
         fs=fs,
         freqs=np.linspace(0, fs/2, sg.shape[1]),
-        time_shift=time_shift
+        sgram_shift=sgram_shift
     )
 
     return sgram
 
 
-def calc_sgram_oct2py(signal, fs, channel_num, time_shift):
+def calc_sgram_oct2py(signal, fs, channel_num, sgram_shift):
 
     assert channel_num % 2, "channel_num must be odd"
     dgtreal_channel_num = (channel_num - 1) * 2
 
     octave.put('signal', signal)
     octave.run(
-        'ss = dgtreal(signal, "gauss", {time_shift}, {dgtreal_channel_num})'.format(
-            time_shift=time_shift,
+        'ss = dgtreal(signal, "gauss", {sgram_shift}, {dgtreal_channel_num})'.format(
+            sgram_shift=sgram_shift,
             dgtreal_channel_num=dgtreal_channel_num
         )
     )
@@ -93,7 +93,7 @@ def calc_sgram_oct2py(signal, fs, channel_num, time_shift):
         data=sg,
         fs=fs,
         freqs=np.linspace(0, fs/2, sg.shape[1]),
-        time_shift=time_shift
+        sgram_shift=sgram_shift
     )
 
     return sgram
@@ -121,7 +121,7 @@ def calc_isgram_pytave(sgram, iter_num=1000):
         'isgramreal',
         padded.T,
         'gauss',
-        sgram.time_shift,
+        sgram.sgram_shift,
         channel_num,
         'maxit',
         iter_num)
@@ -150,8 +150,8 @@ def calc_isgram_oct2py(sgram, iter_num=1000):
 
     octave.put('padded', padded.T)
     octave.run(
-        'r = isgramreal(padded, "gauss", {time_shift}, {channel_num}, "maxit", {iter_num});'.format(
-            time_shift=sgram.time_shift,
+        'r = isgramreal(padded, "gauss", {sgram_shift}, {channel_num}, "maxit", {iter_num});'.format(
+            sgram_shift=sgram.sgram_shift,
             channel_num=channel_num,
             iter_num=iter_num
         ),
@@ -168,7 +168,7 @@ def calc_isgram_oct2py(sgram, iter_num=1000):
 
 
 def main():
-    time_shift = 1
+    sgram_shift = 1
 
     fs = 16e3
     t = np.arange(0, 0.1, 1/fs)
@@ -179,7 +179,7 @@ def main():
         s,
         fs,
         channel_num=51,
-        time_shift=time_shift
+        sgram_shift=sgram_shift
     )
     print sgram.freqs
 

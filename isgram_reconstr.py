@@ -8,6 +8,7 @@ import numpy as np
 import scipy.signal as dsp
 from collections import namedtuple
 import multiprocessing
+import logging
 
 import ffnet
 import joblib
@@ -18,26 +19,26 @@ from common import run_ear
 import mrlib.waves as wv
 
 mem = joblib.Memory("work", verbose=2)
-Net = namedtuple("Net", "net, freq, fs, time_shift, cfs, win_len")
+Net = namedtuple("Net", "net, freq, fs, sgram_shift, cfs, win_len")
 
 
 class ISgramReconstructor(object):
     def __init__(
             self,
-            time_shift=2,
+            sgram_shift=2,
             hidden_layer=0.25,
             band=(2000,8000),
             channel_num=51,
-            cfs_per_channel=[1, 1.2],
-            anf_num=(0,1000,0)
+            relative_cfs_per_channel=[1, 1.2],
+            anf_type='msr'
     ):
 
-        self.fs = None
-        self.time_shift = time_shift
+        self.fs = None          # fs of the training and output signal
+        self.sgram_shift = sgram_shift
         self.band = band
         self.channel_num = channel_num
-        self.cfs_per_channel = cfs_per_channel
-        self.anf_num = anf_num
+        self.relative_cfs_per_channel = relative_cfs_per_channel
+        self.anf_type = anf_type
         self.cfs = None
         self._hidden_layer = hidden_layer
 
@@ -46,26 +47,26 @@ class ISgramReconstructor(object):
 
 
 
-    def train(self, sound, fs, filter=True, iter_num=1000):
+    def train(self, sound, fs, filter=True, **kwargs):
         if self.fs is None:
             self.fs = fs
         else:
             assert self.fs == fs
 
         if filter:
-            print("Filtering the siganl:", self.band)
+            logging.info("Filtering the siganl: {}".format(str(self.band)))
             sound = wv.fft_filter(sound, fs, self.band)
 
 
         if self._nets is None:
             self._nets = _generate_nets(
                 fs=self.fs,
-                time_shift=self.time_shift,
+                sgram_shift=self.sgram_shift,
                 channel_num=self.channel_num,
                 band=self.band,
-                cfs_per_channel=self.cfs_per_channel,
+                relative_cfs_per_channel=self.relative_cfs_per_channel,
                 hidden_layer=self._hidden_layer,
-                win_len_sec=5e-3
+                win_len=5e-3
             )
 
 
@@ -77,40 +78,33 @@ class ISgramReconstructor(object):
 
 
         anfs = run_ear(
-            sound,
-            fs,
-            self.cfs,
-            self.anf_num
+            sound=sound,
+            fs=fs,
+            cf=self.cfs,
+            anf_type=self.anf_type
         )
 
         sgram = calc_sgram(
             sound,
             fs,
             channel_num=self.channel_num,
-            time_shift=self.time_shift
+            sgram_shift=self.sgram_shift
         )
 
         self._nets = _train(
             self._nets,
             anfs,
             sgram,
-            iter_num
+            **kwargs
         )
 
 
 
     def run(self, anfs, iter_num=1000, filter=True, store_sgram=False):
 
-        ### Check anf_num
-        for anf_num in anfs['anf_num']:
-            assert np.all( anf_num == np.array(self.anf_num) )
+        assert anfs.type == self.anf_type
 
-        ### Check fs
-        fs_net, = np.unique([net.fs for net in self._nets])
-        fs_anf, = np.unique(anfs['fs'])
-        assert fs_net == fs_anf
-        fs = fs_net
-
+        fs, = np.unique([net.fs for net in self._nets])
 
 
         freqs = np.linspace(0, fs/2, self.channel_num)
@@ -120,7 +114,7 @@ class ISgramReconstructor(object):
 
         output_data = []
         for net in self._nets:
-            input_data = _make_mlp_data(net, anfs)
+            input_data = _make_mlp_sets(net, anfs)
             output_data.append( net.net(input_data).squeeze() )
 
         empty_channel = np.zeros_like( output_data[0] )
@@ -144,7 +138,7 @@ class ISgramReconstructor(object):
             data=sg,
             fs=fs,
             freqs=freqs,
-            time_shift=self.time_shift
+            sgram_shift=self.sgram_shift
         )
 
         if store_sgram:
@@ -154,8 +148,8 @@ class ISgramReconstructor(object):
         signal = calc_isgram(sgram, iter_num)
 
         if filter:
-            print("Filtering the siganl:", self.band)
-            sound = wv.fft_filter(sound, fs, self.band)
+            logging.info("Filtering the siganl: {}".format(str(self.band)))
+            sound = wv.fft_filter(signal, fs, self.band)
 
 
         return signal, fs
@@ -164,65 +158,67 @@ class ISgramReconstructor(object):
 
 
 
-def _training_helper( (net, input_data, target_data, iter_num) ):
+def _train_signle_channel( (net, input_data, target_data, kwargs) ):
 
     net.net.train_tnc(
         input_data,
         target_data,
-        maxfun=iter_num,
         messages=1,
-        nproc=1
+        nproc=1,
+        **kwargs
     )
     return net
 
 
 
-@mem.cache
-def _generate_nets(fs,
-                   time_shift,
-                   channel_num,
-                   band,
-                   cfs_per_channel,
-                   hidden_layer,
-                   win_len_sec=5e-3):
 
 
-    win_len = np.round(win_len_sec * fs / time_shift)
+def _generate_nets(
+        fs,
+        sgram_shift,
+        channel_num,
+        band,
+        relative_cfs_per_channel,
+        hidden_layer,
+        win_len=5e-3
+):
+
+    win_samp = np.round(win_len * fs / sgram_shift)
 
     freqs = np.linspace(0, fs/2, channel_num)
     lo, hi = band
 
     nets = []
     for freq in freqs:
-        np.random.seed(int(freq))
+        np.random.seed(int(freq)) # we want deterministic initial MLP weights
 
         if (freq < lo) or (freq > hi):
             continue
 
-        print "Generating MLP for", freq, "Hz"
-        cfs = freq * np.array(cfs_per_channel)
+        logging.info("Generating MLP for {} Hz".format(freq))
+        cfs = freq * np.array(relative_cfs_per_channel)
 
 
         ### Make MLP
         if hidden_layer > 1:
             conec = ffnet.mlgraph(
-                (int(len(cfs)*win_len),
+                (int(len(cfs)*win_samp),
                  int(hidden_layer),
                  1)
             )
 
         elif hidden_layer > 0:
             conec = ffnet.mlgraph(
-                (int(len(cfs)*win_len),
-                 int(len(cfs)*win_len*hidden_layer),
+                (int(len(cfs)*win_samp),
+                 int(len(cfs)*win_samp*hidden_layer),
                  1)
             )
         elif hidden_layer == 0:
             conec = ffnet.mlgraph(
-                (int(len(cfs)*win_len), 1)
+                (int(len(cfs)*win_samp), 1)
             )
         else:
-            assert False
+            raise RuntimeError
 
         net = ffnet.ffnet(conec)
 
@@ -231,7 +227,7 @@ def _generate_nets(fs,
             Net(
                 net=net,
                 fs=fs,
-                time_shift=time_shift,
+                sgram_shift=sgram_shift,
                 freq=freq,
                 cfs=cfs,
                 win_len=win_len
@@ -243,41 +239,40 @@ def _generate_nets(fs,
 
 
 @mem.cache
-def _train(nets, anfs, sgram, iter_num):
+def _train(nets, anfs, sgram, **kwargs):
     training_data = []
     for net in nets:
-        input_data, target_data = _make_mlp_data(net, anfs, sgram)
-        training_data.append( (net,input_data,target_data,iter_num) )
+        input_data, target_data = _make_mlp_sets(net, anfs, sgram)
+        training_data.append( (net,input_data,target_data,kwargs) )
 
-    # nets = map(_training_helper, training_data)
+    # nets = map(_train_signle_channel, training_data)
     pool = multiprocessing.Pool()
-    nets = pool.map(_training_helper, training_data)
+    nets = pool.map(_train_signle_channel, training_data)
 
     return nets
 
 
 
-def _make_mlp_data(net, anfs, sgram=None):
+def _make_mlp_sets(net, anfs, sgram=None):
 
-    fs_anf = anfs.fs
-    assert np.all(anfs['fs'] == fs_anf)
+    win_samp = np.round(net.win_len * net.fs / net.sgram_shift)
 
 
     ### Select ANF channels
-    trains = []
+    anf_sel = []
     for cf in net.cfs:
-        trains.append( anfs[anfs['cfs']==cf]['trains'] )
-    trains = np.array(trains).T.squeeze()
+        anf_sel.append( anfs.data[:,anfs.cfs==cf] )
+    anf_sel = np.array(anf_sel).T.squeeze()
 
 
-    ### Resample ANF to net.fs
+    ### Resample ANF to fs/sgram_shift
     if sgram is not None:
         assert net.fs == sgram.fs
-        assert net.time_shift == sgram.time_shift
+        assert net.sgram_shift == sgram.sgram_shift
         assert net.freq in sgram.freqs
     anf_mat = dsp.resample(
-        trains,
-        len(trains) * net.fs / net.time_shift / fs_anf
+        anf_sel,
+        len(anf_sel) * net.fs / net.sgram_shift / anfs.fs
     )
 
 
@@ -288,26 +283,26 @@ def _make_mlp_data(net, anfs, sgram=None):
 
 
     ### Make MLP data
-    input_data = []
-    target_data = []
+    input_set = []
+    target_set = []
 
-    for i in np.arange(len(anf_mat) - net.win_len):
+    for i in np.arange(len(anf_mat) - win_samp):
         lo = i
-        hi = i + net.win_len
+        hi = i + win_samp
 
-        input_data.append( anf_mat[lo:hi].flatten() )
+        input_set.append( anf_mat[lo:hi].flatten() )
         if sgram is not None:
-            target_data.append( sgram_target[i] )
+            target_set.append( sgram_target[i] )
 
 
-    input_data = np.array(input_data, dtype=float)
-    target_data = np.array(target_data, dtype=float)
+    input_set = np.array(input_set, dtype=float)
+    target_set = np.array(target_set, dtype=float)
 
 
     if sgram is None:
-        return input_data
+        return input_set
     else:
-        return input_data, target_data
+        return input_set, target_set
 
 
 
@@ -333,12 +328,12 @@ def main():
 
 
     isgram_reconstructor = ISgramReconstructor(
-        time_shift=2,
+        sgram_shift=2,
         hidden_layer=0,
         band=(1000,8000),
         channel_num=51,
-        cfs_per_channel=[1, 1.2],
-        anf_num=(0,1000,0)
+        relative_cfs_per_channel=[0.9, 1, 1.2],
+        anf_type='msr'
     )
 
 
@@ -346,7 +341,7 @@ def main():
     isgram_reconstructor.train(
         s,
         fs,
-        iter_num=500
+        maxfun=1500
     )
 
 
@@ -355,8 +350,8 @@ def main():
     anfs = run_ear(
         sound=s,
         fs=fs,
-        cfs=isgram_reconstructor.cfs,
-        anf_num=isgram_reconstructor.anf_num
+        cf=isgram_reconstructor.cfs,
+        anf_type=isgram_reconstructor.anf_type
     )
 
 
@@ -373,7 +368,7 @@ def main():
     # ax[2].imshow(calc_sgram(r, fs, 51, 1).data.T, aspect='auto')
     ax[0].plot(s)
     ax[2].plot(r)
-    ax[1].imshow(anfs['trains'], aspect='auto')
+    ax[1].imshow(anfs.data.T, aspect='auto')
 
     plt.show()
 

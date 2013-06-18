@@ -31,7 +31,7 @@ class Reconstructor(object):
 
 
 
-#@mem.cache
+@mem.cache
 def run_ear(
         sound,
         fs,
