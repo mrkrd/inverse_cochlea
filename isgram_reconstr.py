@@ -11,14 +11,15 @@ import multiprocessing
 import logging
 
 import ffnet
-import joblib
 
-from sgram import calc_sgram, calc_isgram, SGram
+from sgram import calc_sgram, calc_isgram, Spectrogram
 from common import run_ear
 
 import mrlib.waves as wv
 
+import joblib
 mem = joblib.Memory("work", verbose=2)
+
 Net = namedtuple("Net", "net, freq, fs, sgram_shift, cfs, win_len")
 
 
@@ -134,7 +135,7 @@ class ISgramReconstructor(object):
         sg[ sg<0 ] = 0
 
 
-        sgram = SGram(
+        sgram = Spectrogram(
             data=sg,
             fs=fs,
             freqs=freqs,
@@ -253,7 +254,7 @@ def _train(nets, anfs, sgram, **kwargs):
 
 
 
-def _make_mlp_sets(net, anfs, sgram=None):
+def _make_mlp_sets(net, anf, sgram=None):
 
     win_samp = np.round(net.win_len * net.fs / net.sgram_shift)
 
@@ -261,7 +262,7 @@ def _make_mlp_sets(net, anfs, sgram=None):
     ### Select ANF channels
     anf_sel = []
     for cf in net.cfs:
-        anf_sel.append( anfs.data[:,anfs.cfs==cf] )
+        anf_sel.append( anf.data[:,anf.cfs==cf] )
     anf_sel = np.array(anf_sel).T.squeeze()
 
 
@@ -272,21 +273,21 @@ def _make_mlp_sets(net, anfs, sgram=None):
         assert net.freq in sgram.freqs
     anf_mat = dsp.resample(
         anf_sel,
-        len(anf_sel) * net.fs / net.sgram_shift / anfs.fs
+        len(anf_sel) * net.fs / net.sgram_shift / anf.fs
     )
 
 
     ### Select spectrogram frquency
     if sgram is not None:
         sgram_target = sgram.data[:, sgram.freqs==net.freq]
-        sgram_target = sgram_target.squeeze()
+        # sgram_target = sgram_target.squeeze()
 
 
     ### Make MLP data
     input_set = []
     target_set = []
 
-    for i in np.arange(len(anf_mat) - win_samp):
+    for i in np.arange(len(anf_mat) - win_samp + 1):
         lo = i
         hi = i + win_samp
 
@@ -315,6 +316,8 @@ def main():
     fs = 16e3
     t = np.arange(0, 0.1, 1/fs)
 
+    s0 = np.zeros(0.1*fs)
+
     s1 = dsp.chirp(t, 1000, t[-1], 6000)
     s1 = cochlea.set_dbspl(s1, 60)
     s1[300:400] = 0
@@ -323,7 +326,7 @@ def main():
     s2 = cochlea.set_dbspl(s2, 50)
     s2[300:400] = 0
 
-    s = np.concatenate( (s1, s2) )
+    s = np.concatenate( (s1, s0, s2) )
 
 
 
@@ -341,13 +344,13 @@ def main():
     isgram_reconstructor.train(
         s,
         fs,
-        maxfun=1500
+        maxfun=500
     )
 
 
 
     ### Testing
-    anfs = run_ear(
+    anf = run_ear(
         sound=s,
         fs=fs,
         cf=isgram_reconstructor.cfs,
@@ -356,7 +359,7 @@ def main():
 
 
     r, fs = isgram_reconstructor.run(
-        anfs,
+        anf,
         iter_num=100
     )
 
@@ -368,7 +371,7 @@ def main():
     # ax[2].imshow(calc_sgram(r, fs, 51, 1).data.T, aspect='auto')
     ax[0].plot(s)
     ax[2].plot(r)
-    ax[1].imshow(anfs.data.T, aspect='auto')
+    ax[1].imshow(anf.data.T, aspect='auto')
 
     plt.show()
 

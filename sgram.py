@@ -43,7 +43,7 @@ elif _backend == 'oct2py':
 
 
 
-SGram = namedtuple("SGram", "data, fs, freqs, sgram_shift")
+Spectrogram = namedtuple("Spectrogram", "data, fs, freqs, sgram_shift")
 
 
 def calc_sgram_pytave(signal, fs, channel_num, sgram_shift):
@@ -63,7 +63,7 @@ def calc_sgram_pytave(signal, fs, channel_num, sgram_shift):
 
     sg = np.abs(ss.T)**2
 
-    sgram = SGram(
+    sgram = Spectrogram(
         data=sg,
         fs=fs,
         freqs=np.linspace(0, fs/2, sg.shape[1]),
@@ -89,7 +89,7 @@ def calc_sgram_oct2py(signal, fs, channel_num, sgram_shift):
 
     sg = np.abs(ss.T)**2
 
-    sgram = SGram(
+    sgram = Spectrogram(
         data=sg,
         fs=fs,
         freqs=np.linspace(0, fs/2, sg.shape[1]),

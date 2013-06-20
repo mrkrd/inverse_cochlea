@@ -22,9 +22,8 @@ from common import (
     Signal
 )
 
-from cochlea import (
-    set_dbspl
-)
+from sgram import Spectrogram
+from cochlea import set_dbspl
 
 import cPickle as pickle
 

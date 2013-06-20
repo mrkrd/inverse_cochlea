@@ -20,7 +20,7 @@ from common import band_pass_filter, run_ear
 
 mem = joblib.Memory("work", verbose=2)
 Net = namedtuple("Net", "net, freq, fs, fs_sgram, cfs, win_len")
-SGram = namedtuple("SGram", "data, fs, freqs, fs_sgram")
+Spectrogram = namedtuple("Spectrogram", "data, fs, freqs, fs_sgram")
 
 class ArssReconstructor(object):
     def __init__(self,
@@ -62,7 +62,7 @@ class ArssReconstructor(object):
             band=self.band,
             channel_num=self.channel_num
         )
-        sgram = SGram(
+        sgram = Spectrogram(
             data=sg,
             fs=fs,
             freqs=freqs,
@@ -137,7 +137,7 @@ class ArssReconstructor(object):
 
 
         if store_sgram:
-            sgram = SGram(
+            sgram = Spectrogram(
                 data=sg,
                 fs=fs,
                 freqs=freqs,
