@@ -116,7 +116,7 @@ class MlpReconstructor(Reconstructor):
 
         signal = Signal(sound, fs)
 
-        _train_tnc(
+        self.net = _train_tnc(
             net=self.net,
             fs_net=self.fs_net,
             win_len=self.win_len,
@@ -172,7 +172,7 @@ def _train_tnc(net, fs_net, win_len, anf, signal, **kwargs):
         **kwargs
     )
 
-
+    return net
 
 
 
