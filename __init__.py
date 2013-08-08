@@ -7,11 +7,11 @@ __author__ = "Marek Rudnicki"
 import warnings
 
 
-try:
-    from isgram_reconstr import ISgramReconstructor
-except ImportError:
-    warnings.warn("ISgram reconstruction not loaded (missing pytave or oct2py)")
-from isgram_reconstr import ISgramReconstructor
+# try:
+#     from isgram_reconstr import ISgramReconstructor
+# except ImportError:
+#     warnings.warn("ISgram reconstruction not loaded (missing pytave or oct2py)")
+# from isgram_reconstr import ISgramReconstructor
 
 
 from mlp_reconstr import MlpReconstructor
@@ -22,7 +22,7 @@ from common import (
     Signal
 )
 
-from sgram import Spectrogram
+# from sgram import Spectrogram
 from cochlea import set_dbspl
 
 import cPickle as pickle

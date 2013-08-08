@@ -154,7 +154,7 @@ class MlpReconstructor(Reconstructor):
 
 
 
-# @mem.cache
+@mem.cache
 def _train_tnc(net, fs_net, win_len, anf, signal, **kwargs):
 
     input_set, target_set = _make_mlp_sets(
