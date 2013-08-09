@@ -92,7 +92,7 @@ class MlpReconstructor(Reconstructor):
 
 
         if filter:
-            print("Filtering the siganl:", self.band)
+            print("Filtering the signal:", self.band)
             sound = wv.fft_filter(sound, fs, self.band)
 
 
@@ -154,7 +154,7 @@ class MlpReconstructor(Reconstructor):
 
 
 
-@mem.cache
+@mem.cache(ignore=['nproc'])
 def _train_tnc(net, fs_net, win_len, anf, signal, nproc=None, **kwargs):
 
     input_set, target_set = _make_mlp_sets(
