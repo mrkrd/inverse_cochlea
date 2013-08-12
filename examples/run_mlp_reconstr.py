@@ -26,34 +26,34 @@ def main():
     s2 = inverse_cochlea.set_dbspl(s2, 50)
     s2[300:400] = 0
 
-    s = np.concatenate( (s0, s1, s2) )
+    sound = np.concatenate( (s0, s1, s2) )
 
 
     mlp_reconstructor = inverse_cochlea.MlpReconstructor(
         band=(125,2000),
-        fs_mlp=8e3,
+        fs_net=8e3,
         hidden_layer=5,
-        anf_type=(0,1000,0),
+        anf_type='msr',
         channel_num=50,
     )
 
 
     ### Training
     mlp_reconstructor.train(
-        s,
+        sound,
         fs,
-        maxfun=1000
+        maxfun=200
     )
 
 
     ### Testing
     anf = inverse_cochlea.run_ear(
-        sound=s,
+        sound=sound,
         fs=fs,
-        cfs=mlp_reconstructor.cfs,
+        cf=mlp_reconstructor.cfs,
         anf_type=mlp_reconstructor.anf_type
     )
-    r, fs = mlp_reconstructor.run(
+    reconstruction, fs = mlp_reconstructor.run(
         anf
     )
 
@@ -62,9 +62,9 @@ def main():
 
 
     fig, ax = plt.subplots(3, 1)
-    ax[0].plot(s)
+    ax[0].plot(sound)
     ax[1].imshow(anf.data.T, aspect='auto')
-    ax[2].plot(r)
+    ax[2].plot(reconstruction)
 
     plt.show()
 
