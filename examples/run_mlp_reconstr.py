@@ -32,7 +32,7 @@ def main():
     mlp_reconstructor = inverse_cochlea.MlpReconstructor(
         band=(125,2000),
         fs_net=8e3,
-        hidden_layer=5,
+        hidden_layer_size=5,
         anf_type='msr',
         channel_num=50,
     )

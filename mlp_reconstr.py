@@ -32,7 +32,7 @@ class MlpReconstructor(Reconstructor):
             self,
             band=(125, 2000),
             fs_net=8e3,
-            hidden_layer=4,
+            hidden_layer_size=4,
             channel_num=10,
             win_len=10e-3,
             anf_type='msr'
@@ -57,28 +57,28 @@ class MlpReconstructor(Reconstructor):
         ))
 
 
-        if hidden_layer > 1:
+        if hidden_layer_size > 1:
             conec = ffnet.mlgraph(
                 (win_samp*channel_num,
-                 int(hidden_layer),
+                 int(hidden_layer_size),
                  1)
             )
 
-        elif hidden_layer > 0:
+        elif hidden_layer_size > 0:
             conec = ffnet.mlgraph(
                 (win_samp*channel_num,
-                 int(win_samp*channel_num*hidden_layer),
+                 int(win_samp*channel_num*hidden_layer_size),
                  1)
             )
 
-        elif hidden_layer == 0:
+        elif hidden_layer_size == 0:
             conec = ffnet.mlgraph(
                 (win_samp*channel_num,
                  1)
             )
 
         else:
-            raise RuntimeError("hidden_layer should not be negative")
+            raise RuntimeError("hidden_layer_size should not be negative")
 
 
         np.random.seed(0)
