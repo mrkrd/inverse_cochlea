@@ -6,9 +6,9 @@ setup(
     name = "inverse_cochlea",
     version = "0.1",
     author = "Marek Rudnicki",
-    author_email = "marekrud@gmail.com",
+    author_email = "marek.rudnicki@tum.de",
 
-    description = "Reconstruction of sounds from auditory nerve fibers' spikes"
+    description = "Reconstruction of sounds from auditory nerve fibers' spikes",
 
     packages = find_packages(),
 )

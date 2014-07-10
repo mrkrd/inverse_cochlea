@@ -11,7 +11,7 @@ import cPickle as pickle
 from collections import namedtuple
 
 import cochlea
-import mrlib.thorns as th
+import thorns as th
 
 import joblib
 mem = joblib.Memory("work", verbose=2)
@@ -48,7 +48,7 @@ def run_ear(
 
 
     if isinstance(anf_type, tuple):
-        anf_trains = cochlea.run_zilany2013(
+        anf_trains = cochlea.run_zilany2014(
             sound=sound_model,
             fs=fs_model,
             anf_num=anf_type,
@@ -66,7 +66,7 @@ def run_ear(
         cfs = np.array(acc['cf'])
 
     elif anf_type in ('hsr','msr','lsr'):
-        rates = cochlea.run_zilany2013_rate(
+        rates = cochlea.run_zilany2014_rate(
             sound=sound_model,
             fs=fs_model,
             anf_types=[anf_type],

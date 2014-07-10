@@ -15,7 +15,7 @@ import ffnet
 from sgram import calc_sgram, calc_isgram, Spectrogram
 from common import run_ear
 
-import mrlib.waves as wv
+import thorns.waves as wv
 
 import joblib
 mem = joblib.Memory("work", verbose=2)
