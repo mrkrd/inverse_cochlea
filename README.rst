@@ -23,12 +23,15 @@ Bernstein Conference 2012. doi: 10.3389/conf.fncom.2012.55.00092
 
 `Full abstract`_
 
-Poster
-......
+`Sound samples`_
 
 
 .. _`Full abstract`: https://www.frontiersin.org/10.3389/conf.fncom.2012.55.00092/event_abstract
+.. _`Sound samples`: ./sound_samples
 
+
+Poster
+......
 
 .. image:: ./poster/poster_2012.png
    :target: ./poster/poster_2012.pdf
