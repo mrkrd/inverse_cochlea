@@ -44,7 +44,7 @@ def run_ear(
     assert sound.ndim == 1
 
     fs_model = 100e3
-    sound_model = dsp.resample(sound, len(sound) * fs_model / fs)
+    sound_model = dsp.resample(sound, int(np.round(len(sound) * fs_model / fs)))
 
 
     if isinstance(anf_type, tuple):

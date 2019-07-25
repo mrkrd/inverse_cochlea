@@ -7,12 +7,10 @@ __author__ = "Marek Rudnicki"
 import warnings
 
 
-# try:
-#     from isgram_reconstr import ISgramReconstructor
-# except ImportError:
-#     warnings.warn("ISgram reconstruction not loaded (missing pytave or oct2py)")
-# from isgram_reconstr import ISgramReconstructor
-
+try:
+    from isgram_reconstr import ISgramReconstructor
+except ImportError:
+    warnings.warn("ISgram reconstruction not loaded (probably missing pytave or oct2py)")
 
 from mlp_reconstr import MlpReconstructor
 
@@ -26,6 +24,9 @@ from common import (
 from cochlea import set_dbspl
 
 import cPickle as pickle
+
+__version__ = '1'
+
 
 def load(fname):
     r = pickle.load(open(fname,'r'))

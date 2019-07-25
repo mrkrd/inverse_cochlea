@@ -208,7 +208,7 @@ elif _backend == 'pytave':
     calc_isgram = calc_isgram_pytave
     calc_sgram = calc_sgram_pytave
 else:
-    raise RuntimeError
+    raise ImportError
 
 
 

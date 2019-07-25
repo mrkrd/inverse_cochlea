@@ -187,13 +187,13 @@ def _make_mlp_sets(win_len, fs_net, anf, signal=None):
     ### Resample data to the desired output fs
     anf_data = dsp.resample(
         anf.data,
-        len(anf.data) * fs_net / anf.fs
+        int(np.round(len(anf.data) * fs_net / anf.fs))
     )
 
     if signal is not None:
         signal_data = dsp.resample(
             signal.data,
-            len(signal.data) * fs_net / signal.fs
+            int(np.round(len(signal.data) * fs_net / signal.fs))
         )
 
 
